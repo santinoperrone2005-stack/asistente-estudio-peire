@@ -115,7 +115,6 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
 
 def volver_al_dashboard():
     st.session_state.menu_actual = "Dashboard"
-    st.rerun()
 
 # =============================
 # HEADER
