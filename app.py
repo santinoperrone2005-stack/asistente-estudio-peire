@@ -119,30 +119,36 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
 st.markdown("## 🏛 Sistema Interno")
 st.markdown("### Estudio Peire")
 st.markdown("---")
-st.warning("⚠️ Versión DEMO – Contenidos orientativos. Todo debe ser revisado/adecuado por profesional antes de enviar o presentar.")
+st.caption("Uso interno del estudio. Revisar siempre antes de enviar o presentar.")
 
 # =============================
 # SIDEBAR
 # =============================
+opciones_menu = [
+    "Dashboard",
+    "Carta Documento",
+    "Respuesta Carta Documento",
+    "Contestación de Oficio",
+    "Mailing (Modo Agente)",
+    "Presupuesto",
+    "Análisis de Documento",
+    "Historial",
+    "Biblioteca Oficial de Prompts",
+    "Cómo usar y compartir",
+]
+
+if "menu_actual" not in st.session_state:
+    st.session_state.menu_actual = "Dashboard"
+
 menu = st.sidebar.radio(
     "Herramientas",
-    [
-        "Dashboard",
-        "Carta Documento",
-        "Respuesta Carta Documento",
-        "Contestación de Oficio",
-        "Mailing (Modo Agente)",
-        "Presupuesto",
-        "Análisis de Documento",
-        "Historial",
-        "Biblioteca Oficial de Prompts",
-        "Cómo usar y compartir",
-    ],
-    index=0,
+    opciones_menu,
+    index=opciones_menu.index(st.session_state.menu_actual),
 )
 
+st.session_state.menu_actual = menu
+
 st.sidebar.markdown("---")
-st.sidebar.caption("Tip: completá campos → Generar → Descargar Word")
 
 with st.sidebar.expander("🖊️ Datos de firma (se agregan al final)", expanded=False):
     firmante = st.text_input("Firmante", value="")
@@ -154,72 +160,56 @@ with st.sidebar.expander("🖊️ Datos de firma (se agregan al final)", expande
 # 0) DASHBOARD
 # =========================================================
 if menu == "Dashboard":
-    st.header("📊 Dashboard")
+    st.header("🏛 Sistema Interno")
+    st.subheader("Estudio Peire")
 
-    historial = st.session_state.get("historial_documentos", [])
-    cantidad_docs = len(historial)
+    st.markdown("### ¿Qué querés hacer hoy?")
 
-    ultimo_doc = historial[0] if cantidad_docs > 0 else None
-
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
-        st.metric("Documentos generados", cantidad_docs)
+        if st.button("📄 Crear Carta Documento", use_container_width=True):
+            st.session_state.menu_actual = "Carta Documento"
+            st.rerun()
+
+        if st.button("✉️ Responder Carta Documento", use_container_width=True):
+            st.session_state.menu_actual = "Respuesta Carta Documento"
+            st.rerun()
+
+        if st.button("📂 Analizar Documento", use_container_width=True):
+            st.session_state.menu_actual = "Análisis de Documento"
+            st.rerun()
+
+        if st.button("📑 Contestar Oficio", use_container_width=True):
+            st.session_state.menu_actual = "Contestación de Oficio"
+            st.rerun()
 
     with col2:
-        st.metric(
-            "Último tipo",
-            ultimo_doc["tipo"] if ultimo_doc else "Sin datos"
-        )
+        if st.button("📧 Redactar Mailing", use_container_width=True):
+            st.session_state.menu_actual = "Mailing (Modo Agente)"
+            st.rerun()
 
-    with col3:
-        st.metric(
-            "Última fecha",
-            ultimo_doc["fecha"] if ultimo_doc else "Sin datos"
-        )
+        if st.button("💼 Hacer Presupuesto", use_container_width=True):
+            st.session_state.menu_actual = "Presupuesto"
+            st.rerun()
 
-    st.markdown("---")
+        if st.button("🕘 Ver Historial", use_container_width=True):
+            st.session_state.menu_actual = "Historial"
+            st.rerun()
 
-    st.subheader("Bienvenida")
-    st.write(
-        "Este panel centraliza las herramientas del Estudio Peire para generación, análisis y seguimiento documental."
-    )
+        if st.button("📚 Ver Prompts", use_container_width=True):
+            st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
+            st.rerun()
 
-    st.subheader("Accesos rápidos")
-    col_a, col_b, col_c = st.columns(3)
+    historial = st.session_state.get("historial_documentos", [])
 
-    with col_a:
-        st.info("📄 Carta Documento\n\nGenerar intimaciones, reclamos y borradores.")
-    with col_b:
-        st.info("✉️ Respuesta CD\n\nResponder documentos recibidos usando análisis previo.")
-    with col_c:
-        st.info("📂 Análisis\n\nSubir documentos, extraer texto y preparar respuestas.")
-
-    col_d, col_e, col_f = st.columns(3)
-
-    with col_d:
-        st.info("📑 Oficios\n\nPreparar contestaciones de oficio.")
-    with col_e:
-        st.info("📧 Mailing\n\nRedactar emails y mensajes al cliente.")
-    with col_f:
-        st.info("🕘 Historial\n\nConsultar documentos generados en esta sesión.")
-
-    st.markdown("---")
-
-    st.subheader("Estado del sistema")
-    st.success("✅ Aplicación online")
-    st.success("✅ Login activo")
-    st.success("✅ Lectura de TXT / PDF / DOCX")
-    st.success("✅ Flujo Análisis → Respuesta")
-    st.success("✅ Historial en sesión")
-
-    if ultimo_doc:
+    if historial:
+        ultimo_doc = historial[0]
         st.markdown("---")
-        st.subheader("Último documento generado")
+        st.markdown("### Último documento generado")
         st.write(f"**Tipo:** {ultimo_doc['tipo']}")
         st.write(f"**Título:** {ultimo_doc['titulo']}")
         st.write(f"**Fecha:** {ultimo_doc['fecha']}")
-        st.text_area("Vista previa", ultimo_doc["contenido"], height=220, disabled=True)
 
 # =========================================================
 # 1) CARTA DOCUMENTO
