@@ -1,13 +1,153 @@
 import streamlit as st
 from docx import Document
 from io import BytesIO
-from datetime import date
+from datetime import date, datetime
 from pypdf import PdfReader
 
 # =============================
 # CONFIG INICIAL
 # =============================
 st.set_page_config(page_title="Sistema Interno - Estudio Peire", layout="wide")
+
+# =============================
+# ESTILO VISUAL
+# =============================
+PRIMARY = "#1597C0"
+PRIMARY_DARK = "#0F7EA0"
+BG = "#F5F6F7"
+CARD = "#FFFFFF"
+TEXT = "#1F2937"
+MUTED = "#6B7280"
+BORDER = "#D6E2E8"
+
+def aplicar_estilo():
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-color: {BG};
+            color: {TEXT};
+        }}
+
+        [data-testid="stSidebar"] {{
+            background-color: #ffffff;
+            border-right: 1px solid {BORDER};
+        }}
+
+        [data-testid="stSidebar"] * {{
+            color: {TEXT} !important;
+        }}
+
+        h1, h2, h3 {{
+            color: {PRIMARY_DARK};
+            font-weight: 700;
+        }}
+
+        .bloque-header {{
+            background: linear-gradient(90deg, #ffffff 0%, #f7fbfd 100%);
+            border: 1px solid {BORDER};
+            border-radius: 18px;
+            padding: 22px 26px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }}
+
+        .titulo-principal {{
+            font-size: 2.1rem;
+            font-weight: 800;
+            color: {PRIMARY_DARK};
+            margin-bottom: 0.2rem;
+        }}
+
+        .subtitulo-principal {{
+            font-size: 1rem;
+            color: {MUTED};
+            margin-top: 0;
+        }}
+
+        .mini-card {{
+            background-color: {CARD};
+            border: 1px solid {BORDER};
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }}
+
+        .mini-card h4 {{
+            color: {PRIMARY_DARK};
+            margin-bottom: 8px;
+        }}
+
+        .mini-card p {{
+            color: {MUTED};
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }}
+
+        .login-box {{
+            max-width: 520px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 32px 28px;
+            border-radius: 18px;
+            border: 1px solid {BORDER};
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }}
+
+        .login-title {{
+            font-size: 2rem;
+            font-weight: 800;
+            color: {PRIMARY_DARK};
+            margin-bottom: 0.2rem;
+        }}
+
+        .login-subtitle {{
+            color: {MUTED};
+            margin-bottom: 1.2rem;
+        }}
+
+        .stButton > button {{
+            background-color: {PRIMARY};
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.65rem 1rem;
+            font-weight: 600;
+            width: 100%;
+        }}
+
+        .stButton > button:hover {{
+            background-color: {PRIMARY_DARK};
+            color: white;
+        }}
+
+        .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {{
+            border-radius: 12px !important;
+        }}
+
+        .stAlert {{
+            border-radius: 14px;
+        }}
+
+        .stDownloadButton > button {{
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .bloque-suave {{
+            background-color: #ffffff;
+            border: 1px solid {BORDER};
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+aplicar_estilo()
 
 # =============================
 # LOGIN SIMPLE
@@ -18,13 +158,27 @@ PASSWORD = "peire2026"
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+if "menu_actual" not in st.session_state:
+    st.session_state.menu_actual = "Dashboard"
+
+def volver_al_dashboard():
+    st.session_state.menu_actual = "Dashboard"
+
 if not st.session_state.logged_in:
-    st.title("Login - Sistema Interno Estudio Peire")
+    st.markdown(
+        """
+        <div class="login-box">
+            <div class="login-title">Estudio Peire</div>
+            <div class="login-subtitle">Sistema interno de trabajo</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     username = st.text_input("Usuario")
     password = st.text_input("Contraseña", type="password")
 
-    if st.button("Ingresar"):
+    if st.button("Ingresar al sistema"):
         if username == USER and password == PASSWORD:
             st.session_state.logged_in = True
             st.rerun()
@@ -32,7 +186,6 @@ if not st.session_state.logged_in:
             st.error("Usuario o contraseña incorrectos")
 
     st.stop()
-
 # =============================
 # HELPERS
 # =============================
@@ -71,6 +224,7 @@ def linea_amenaza(tono: str):
     if tono == "Firme":
         return "bajo apercibimiento de iniciar acciones legales sin más trámite, con más gastos y costas."
     return "bajo apercibimiento de promover de inmediato las acciones judiciales pertinentes, con más intereses, daños, gastos y costas."
+
 def extraer_texto_archivo(uploaded_file):
     if uploaded_file is None:
         return ""
@@ -100,8 +254,6 @@ def extraer_texto_archivo(uploaded_file):
     except Exception as e:
         return f"ERROR_AL_LEER_ARCHIVO: {str(e)}"
 
-from datetime import datetime
-
 def guardar_en_historial(tipo: str, titulo: str, contenido: str):
     if "historial_documentos" not in st.session_state:
         st.session_state["historial_documentos"] = []
@@ -113,17 +265,18 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
         "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
     })
 
-def volver_al_dashboard():
-    st.session_state.menu_actual = "Dashboard"
-
 # =============================
 # HEADER
 # =============================
-st.markdown("## 🏛 Sistema Interno")
-st.markdown("### Estudio Peire")
-st.markdown("---")
-st.caption("Uso interno del estudio. Revisar siempre antes de enviar o presentar.")
-
+st.markdown(
+    """
+    <div class="bloque-header">
+        <div class="titulo-principal">Estudio Peire</div>
+        <div class="subtitulo-principal">Sistema interno de trabajo · uso exclusivo del estudio</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 # =============================
 # SIDEBAR
 # =============================
@@ -138,9 +291,6 @@ opciones_menu = [
     "Historial",
     "Biblioteca Oficial de Prompts",
 ]
-
-if "menu_actual" not in st.session_state:
-    st.session_state.menu_actual = "Dashboard"
 
 menu = st.sidebar.radio(
     "Herramientas",
@@ -158,66 +308,145 @@ with st.sidebar.expander("🖊️ Datos de firma (se agregan al final)", expande
     estudio = st.text_input("Nombre del estudio", value="Estudio Peire")
     contacto = st.text_input("Contacto (email/teléfono)", value="")
 
+if st.sidebar.button("Cerrar sesión"):
+    st.session_state.logged_in = False
+    st.rerun()
 # =========================================================
 # 0) DASHBOARD
 # =========================================================
 if menu == "Dashboard":
-    st.header("🏛 Sistema Interno")
-    st.subheader("Estudio Peire")
+    st.markdown("## Panel principal")
+    st.markdown("Elegí la tarea que querés realizar.")
 
-    st.markdown("### ¿Qué querés hacer hoy?")
+    historial = st.session_state.get("historial_documentos", [])
+    ultimo_doc = historial[0] if historial else None
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("📄 Crear Carta Documento", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>📄 Crear Carta Documento</h4>
+                <p>Generar intimaciones, reclamos y borradores formales.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Carta Documento", key="go_cd"):
             st.session_state.menu_actual = "Carta Documento"
             st.rerun()
 
-        if st.button("✉️ Responder Carta Documento", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>✉️ Responder Carta Documento</h4>
+                <p>Preparar respuestas a documentos recibidos.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Respuesta Carta Documento", key="go_resp"):
             st.session_state.menu_actual = "Respuesta Carta Documento"
             st.rerun()
 
-        if st.button("📂 Analizar Documento", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>📂 Analizar Documento</h4>
+                <p>Subir archivos, extraer texto y preparar un análisis base.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Análisis de Documento", key="go_analisis"):
             st.session_state.menu_actual = "Análisis de Documento"
             st.rerun()
 
-        if st.button("📑 Contestar Oficio", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>📑 Contestar Oficio</h4>
+                <p>Redactar contestaciones formales de oficio.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Contestación de Oficio", key="go_oficio"):
             st.session_state.menu_actual = "Contestación de Oficio"
             st.rerun()
 
     with col2:
-        if st.button("📧 Redactar Mailing", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>📧 Redactar Mailing</h4>
+                <p>Preparar correos y comunicaciones con clientes.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Mailing", key="go_mail"):
             st.session_state.menu_actual = "Mailing (Modo Agente)"
             st.rerun()
 
-        if st.button("💼 Hacer Presupuesto", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>💼 Hacer Presupuesto</h4>
+                <p>Generar propuestas y presupuestos de honorarios.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Presupuesto", key="go_presupuesto"):
             st.session_state.menu_actual = "Presupuesto"
             st.rerun()
 
-        if st.button("🕘 Ver Historial", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>🕘 Ver Historial</h4>
+                <p>Consultar documentos generados en esta sesión.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Historial", key="go_historial"):
             st.session_state.menu_actual = "Historial"
             st.rerun()
 
-        if st.button("📚 Ver Prompts", use_container_width=True):
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>📚 Ver Prompts</h4>
+                <p>Acceder a la biblioteca interna de prompts del estudio.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Biblioteca de Prompts", key="go_prompts"):
             st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
             st.rerun()
 
-    historial = st.session_state.get("historial_documentos", [])
-
-    if historial:
-        ultimo_doc = historial[0]
+    if ultimo_doc:
         st.markdown("---")
         st.markdown("### Último documento generado")
-        st.write(f"**Tipo:** {ultimo_doc['tipo']}")
-        st.write(f"**Título:** {ultimo_doc['titulo']}")
-        st.write(f"**Fecha:** {ultimo_doc['fecha']}")
-
+        st.markdown(
+            f"""
+            <div class="bloque-suave">
+                <b>Tipo:</b> {ultimo_doc['tipo']}<br>
+                <b>Título:</b> {ultimo_doc['titulo']}<br>
+                <b>Fecha:</b> {ultimo_doc['fecha']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 # =========================================================
 # 1) CARTA DOCUMENTO
 # =========================================================
 elif menu == "Carta Documento":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📄 Carta Documento")
 
     col1, col2 = st.columns(2)
@@ -332,7 +561,7 @@ elif menu == "Carta Documento":
 # 2) RESPUESTA A CARTA DOCUMENTO
 # =========================================================
 elif menu == "Respuesta Carta Documento":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("✉️ Respuesta a Carta Documento")
 
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
@@ -444,7 +673,7 @@ elif menu == "Respuesta Carta Documento":
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
 elif menu == "Contestación de Oficio":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📑 Contestación de Oficio")
 
     col1, col2 = st.columns(2)
@@ -511,7 +740,7 @@ elif menu == "Contestación de Oficio":
 # 4) MAILING MODO AGENTE
 # =========================================================
 elif menu == "Mailing (Modo Agente)":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📧 Mailing (Modo Agente)")
 
     col1, col2, col3 = st.columns(3)
@@ -616,7 +845,7 @@ elif menu == "Mailing (Modo Agente)":
 # 5) PRESUPUESTO
 # =========================================================
 elif menu == "Presupuesto":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("💼 Presupuesto de Honorarios")
 
     col1, col2 = st.columns(2)
@@ -686,7 +915,7 @@ elif menu == "Presupuesto":
 # 6) ANÁLISIS DE DOCUMENTO
 # =========================================================
 elif menu == "Análisis de Documento":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📂 Análisis de Documento")
     
     st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
@@ -828,7 +1057,7 @@ Observaciones:
 # 7) HISTORIAL
 # =========================================================
 elif menu == "Historial":
-    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("🕘 Historial de Documentos")
     
     historial = st.session_state.get("historial_documentos", [])
