@@ -86,10 +86,12 @@ menu = st.sidebar.radio(
         "Contestación de Oficio",
         "Mailing (Modo Agente)",
         "Presupuesto",
+        "Análisis de Documento",
         "Biblioteca Oficial de Prompts",
         "Cómo usar y compartir",
     ],
-    index=0,  # importante: arranca siempre en Carta Documento
+    index=0,
+
 )
 
 st.sidebar.markdown("---")
@@ -502,7 +504,116 @@ elif menu == "Presupuesto":
         exportar_word(t, "Presupuesto_Estudio_Peire")
 
 # =========================================================
-# 6) BIBLIOTECA DE PROMPTS
+# 6)ANALISIS DE DOCUMENTO 
+# =========================================================
+elif menu == "Análisis de Documento":
+    st.header("📂 Análisis de Documento")
+
+    st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
+
+    uploaded_file = st.file_uploader(
+        "Subir archivo",
+        type=["pdf", "docx", "txt"]
+    )
+
+    tipo_documento = st.selectbox(
+        "Tipo de documento",
+        [
+            "Carta Documento recibida",
+            "Respuesta a Carta Documento",
+            "Oficio recibido",
+            "Intimación",
+            "Otro"
+        ]
+    )
+
+    observaciones = st.text_area(
+        "Observaciones / contexto del estudio",
+        height=120,
+        placeholder="Ej: este documento llegó hoy, corresponde a un reclamo por alquiler, el cliente dice que ya pagó, etc."
+    )
+
+    contenido_txt = ""
+
+    if uploaded_file is not None:
+        st.success(f"Archivo cargado: {uploaded_file.name}")
+
+        extension = uploaded_file.name.split(".")[-1].lower()
+
+        if extension == "txt":
+            try:
+                contenido_txt = uploaded_file.read().decode("utf-8")
+                st.subheader("Contenido detectado")
+                st.text_area("Texto del archivo", contenido_txt, height=250)
+            except Exception:
+                st.warning("No se pudo leer el archivo TXT correctamente.")
+        else:
+            st.info("Por ahora, los archivos PDF y DOCX se cargan como referencia. Más adelante podemos hacer lectura automática con IA o procesamiento de documentos.")
+
+    st.subheader("Datos clave del documento")
+    remitente = st.text_input("Remitente")
+    destinatario = st.text_input("Destinatario")
+    fecha_doc = st.text_input("Fecha del documento")
+    monto = st.text_input("Monto (si aplica)")
+    objeto = st.text_input("Objeto / tema principal")
+
+    resumen = st.text_area(
+        "Resumen manual / puntos importantes",
+        height=150,
+        placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc."
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Preparar borrador de respuesta"):
+            borrador = f"""
+ANÁLISIS DEL DOCUMENTO
+
+Tipo de documento: {tipo_documento}
+Archivo cargado: {uploaded_file.name if uploaded_file else "[Sin archivo]"}
+Remitente: {remitente or "[No informado]"}
+Destinatario: {destinatario or "[No informado]"}
+Fecha: {fecha_doc or "[No informada]"}
+Monto: {monto or "[No informado]"}
+Objeto: {objeto or "[No informado]"}
+
+Observaciones del estudio:
+{observaciones or "[Sin observaciones]"}
+
+Resumen / puntos importantes:
+{resumen or "[Sin resumen]"}
+
+SUGERENCIA DE PRÓXIMO PASO:
+Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
+"""
+            st.text_area("Borrador base", borrador, height=350)
+            exportar_word(borrador, "Analisis_Documento_Estudio_Peire")
+
+    with col2:
+        if st.button("Extraer ficha del documento"):
+            ficha = f"""
+FICHA DEL DOCUMENTO
+
+Tipo: {tipo_documento}
+Archivo: {uploaded_file.name if uploaded_file else "[Sin archivo]"}
+Remitente: {remitente or "[No informado]"}
+Destinatario: {destinatario or "[No informado]"}
+Fecha: {fecha_doc or "[No informada]"}
+Monto: {monto or "[No informado]"}
+Objeto: {objeto or "[No informado]"}
+
+Resumen:
+{resumen or "[Sin resumen]"}
+
+Observaciones:
+{observaciones or "[Sin observaciones]"}
+"""
+            st.text_area("Ficha del documento", ficha, height=350)
+            exportar_word(ficha, "Ficha_Documento_Estudio_Peire")
+
+# =========================================================
+# 7)BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
 elif menu == "Biblioteca Oficial de Prompts":
     st.header("📚 Biblioteca Oficial de Prompts – Estudio Peire")
