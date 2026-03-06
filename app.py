@@ -249,14 +249,25 @@ if menu == "Carta Documento":
 elif menu == "Respuesta Carta Documento":
     st.header("✉️ Respuesta a Carta Documento")
 
-    if "analisis_para_respuesta" in st.session_state:
-        datos = st.session_state["analisis_para_respuesta"]
-        st.info(
-            f"Se cargó información desde 'Análisis de Documento'. "
-            f"Remitente: {datos.get('remitente', '[No informado]')} | "
-            f"Destinatario: {datos.get('destinatario', '[No informado]')} | "
-            f"Objeto: {datos.get('objeto', '[No informado]')}"
-        )
+    datos_analisis = st.session_state.get("analisis_para_respuesta", {})
+
+    if datos_analisis:
+        st.success("Se cargó información desde 'Análisis de Documento'.")
+
+        col_ref1, col_ref2 = st.columns(2)
+        with col_ref1:
+            st.text_input("Remitente detectado", value=datos_analisis.get("remitente", ""), disabled=True)
+            st.text_input("Destinatario detectado", value=datos_analisis.get("destinatario", ""), disabled=True)
+            st.text_input("Tipo de documento", value=datos_analisis.get("tipo_documento", ""), disabled=True)
+        with col_ref2:
+            st.text_input("Fecha detectada", value=datos_analisis.get("fecha_doc", ""), disabled=True)
+            st.text_input("Monto detectado", value=datos_analisis.get("monto", ""), disabled=True)
+            st.text_input("Objeto detectado", value=datos_analisis.get("objeto", ""), disabled=True)
+
+        if st.button("Limpiar datos cargados del análisis"):
+            if "analisis_para_respuesta" in st.session_state:
+                del st.session_state["analisis_para_respuesta"]
+            st.rerun()
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -265,8 +276,6 @@ elif menu == "Respuesta Carta Documento":
         tono = st.selectbox("Tono", ["Neutral", "Firme", "Muy firme"])
     with col3:
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
-
-    datos_analisis = st.session_state.get("analisis_para_respuesta", {})
 
     texto_recibido = st.text_area(
         "Texto recibido (pegar)",
