@@ -43,9 +43,14 @@ def aplicar_estilo():
             font-weight: 700;
         }}
 
-        label, .stMarkdown, p, span, div {{
+        label, .stMarkdown p, .stMarkdown li, .stMarkdown span {
             color: {TEXT};
-        }}
+        }
+        pre, code, .stCode, [data-testid="stCodeBlock"], [data-testid="stCodeBlock"] * {
+            background-color: #f8fafc !important;
+            color: #111827 !important;
+            border-radius: 12px !important;
+        }
 
         .bloque-header {{
             background: linear-gradient(90deg, #ffffff 0%, #f7fbfd 100%);
@@ -536,26 +541,79 @@ elif menu == "Carta Documento":
         height=90,
         placeholder="Ej: Intimo a abonar la suma adeudada dentro del plazo indicado."
     )
+    col8, col9, col10, col11 = st.columns(4)
+    with col8:
+        mencionar_pruebas = st.checkbox("Mencionar documentación/pruebas", value=True)
+    with col9:
+        incluir_reserva = st.checkbox("Reserva de acciones y derechos", value=True)
+    with col10:
+        incluir_costas = st.checkbox("Apercibimiento de gastos y costas", value=True)
+    with col11:
+        abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo", value=False)
 
-    if mencionar_pruebas:
-        t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
-    if abrir_acuerdo:
-        t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
-    if incluir_costas:
-        t += "\n\nTodo ello con más intereses, gastos y costas."
-    if incluir_reserva:
-        t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+    texto_personalizado = ""
+    if tipo == "Otra (personalizada)":
+        texto_personalizado = st.text_area(
+            "Texto base personalizado (1–4 líneas)",
+            height=80,
+            placeholder="Escribí una base personalizada para esta carta documento."
+        )
 
-    t += "\n\nQueda Ud. debidamente notificado."
-    t += bloque_firma(firmante, matricula, estudio, contacto)
+    if st.button("Generar Carta Documento"):
+        t = "CARTA DOCUMENTO\n"
+        t += f"Lugar/Jurisdicción: {safe(jurisd,'[Lugar]')}\n"
+        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
+        if referencia.strip():
+            t += f"Referencia: {referencia.strip()}\n"
+        t += "\n"
+        t += f"Remitente: {safe(remitente,'[Remitente]')}\n"
+        t += f"Domicilio: {safe(dom_remitente,'[Domicilio remitente]')}\n"
+        t += f"Destinatario: {safe(destinatario,'[Destinatario]')}\n"
+        t += f"Domicilio: {safe(dom_destinatario,'[Domicilio destinatario]')}\n"
 
-    guardar_en_historial(
-    tipo="Carta Documento",
-    titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
-    contenido=t
-)
-    st.text_area("Resultado", t, height=420)
-    exportar_word(t, "Carta_Documento_Estudio_Peire")
+        t += "\n\nPor la presente, "
+
+        if tipo == "Intimación de pago (deuda)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto,'[Monto]')} en concepto de deuda, {linea_amenaza(tono)}"
+        elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza(tono)}"
+        elif tipo == "Rescisión / Resolución contractual":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza(tono)}"
+        elif tipo == "Cese de conducta / daños":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza(tono)}"
+        elif tipo == "Laboral (intimación / regularización)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza(tono)}"
+        else:
+            base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
+            t += f"{base} {linea_amenaza(tono)}"
+
+        t += "\n\nHechos/antecedentes:\n"
+        t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
+
+        if pedido_concreto.strip():
+            t += "\n\nPedido concreto:\n"
+            t += pedido_concreto.strip()
+
+        if mencionar_pruebas:
+            t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
+        if abrir_acuerdo:
+            t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
+        if incluir_costas:
+            t += "\n\nTodo ello con más intereses, gastos y costas."
+        if incluir_reserva:
+            t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+        t += "\n\nQueda Ud. debidamente notificado."
+        t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        guardar_en_historial(
+            tipo="Carta Documento",
+            titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
+            contenido=t
+        )
+
+        st.text_area("Resultado", t, height=420)
+        exportar_word(t, "Carta_Documento_Estudio_Peire")
 
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
