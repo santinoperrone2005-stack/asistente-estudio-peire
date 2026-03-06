@@ -1,0 +1,602 @@
+import streamlit as st
+from docx import Document
+from io import BytesIO
+from datetime import date
+
+st.set_page_config(page_title="Sistema Interno - Estudio Peire", layout="wide")
+
+# -----------------------------
+# Helpers
+# -----------------------------
+def exportar_word(texto: str, nombre_archivo: str):
+    doc = Document()
+    for linea in texto.strip().split("\n"):
+        doc.add_paragraph(linea.rstrip())
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    st.download_button(
+        label="⬇️ Descargar en Word",
+        data=buffer,
+        file_name=f"{nombre_archivo}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+def bloque_firma(firmante: str, matricula: str, estudio: str, contacto: str):
+    out = "\n\n" + ("-" * 42) + "\n"
+    out += f"Firma: {firmante.strip() if firmante else '_______________________'}\n"
+    if matricula.strip():
+        out += f"Matrícula: {matricula.strip()}\n"
+    if estudio.strip():
+        out += f"{estudio.strip()}\n"
+    if contacto.strip():
+        out += f"Contacto: {contacto.strip()}\n"
+    return out
+
+def safe(v: str, placeholder: str):
+    v = (v or "").strip()
+    return v if v else placeholder
+
+def linea_amenaza(tono: str):
+    if tono == "Neutral":
+        return "bajo apercibimiento de iniciar las acciones legales que correspondan."
+    if tono == "Firme":
+        return "bajo apercibimiento de iniciar acciones legales sin más trámite, con más gastos y costas."
+    return "bajo apercibimiento de promover de inmediato las acciones judiciales pertinentes, con más intereses, daños, gastos y costas."
+
+# -----------------------------
+# Header
+# -----------------------------
+st.markdown("## 🏛 Sistema Interno")
+st.markdown("### Estudio Peire")
+st.markdown("---")
+st.warning("⚠️ Versión DEMO – Contenidos orientativos. Todo debe ser revisado/adecuado por profesional antes de enviar o presentar.")
+
+# -----------------------------
+# Sidebar: menú + firma
+# -----------------------------
+menu = st.sidebar.radio(
+    "Herramientas",
+    [
+        "Carta Documento",
+        "Respuesta Carta Documento",
+        "Contestación de Oficio",
+        "Mailing (Modo Agente)",
+        "Presupuesto",
+        "Biblioteca Oficial de Prompts",
+        "Cómo usar y compartir",
+    ],
+    index=0,  # importante: arranca siempre en Carta Documento
+)
+
+st.sidebar.markdown("---")
+st.sidebar.caption("Tip: completá campos → Generar → Descargar Word")
+
+with st.sidebar.expander("🖊️ Datos de firma (se agregan al final)", expanded=False):
+    firmante = st.text_input("Firmante", value="")
+    matricula = st.text_input("Matrícula (opcional)", value="")
+    estudio = st.text_input("Nombre del estudio", value="Estudio Peire")
+    contacto = st.text_input("Contacto (email/teléfono)", value="")
+
+# =========================================================
+# 1) CARTA DOCUMENTO
+# =========================================================
+if menu == "Carta Documento":
+    st.header("📄 Carta Documento")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        remitente = st.text_input("Remitente / Cliente")
+        dom_remitente = st.text_input("Domicilio remitente")
+    with col2:
+        destinatario = st.text_input("Destinatario")
+        dom_destinatario = st.text_input("Domicilio destinatario")
+
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        jurisd = st.text_input("Jurisdicción / Ciudad", value="CABA")
+    with col4:
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
+    with col5:
+        plazo = st.selectbox("Plazo que se intima", ["24 hs", "48 hs", "72 hs", "5 días", "10 días", "15 días"])
+
+    tipo = st.selectbox(
+        "Tipo",
+        [
+            "Intimación de pago (deuda)",
+            "Intimación por incumplimiento (cumplimiento de obligación)",
+            "Rescisión / Resolución contractual",
+            "Cese de conducta / daños",
+            "Laboral (intimación / regularización)",
+            "Otra (personalizada)",
+        ],
+    )
+
+    col6, col7 = st.columns(2)
+    with col6:
+        monto = st.text_input("Monto (si aplica)")
+    with col7:
+        referencia = st.text_input("Referencia/Contrato/Expte (opcional)")
+
+    hechos = st.text_area("Hechos / Antecedentes (cronología breve)", height=120)
+    pedido_concreto = st.text_area("Pedido concreto (qué exigís que haga la otra parte)", height=90)
+
+    tono = st.selectbox("Tono", ["Neutral", "Firme", "Muy firme"])
+
+    col8, col9, col10, col11 = st.columns(4)
+    with col8:
+        mencionar_pruebas = st.checkbox("Mencionar documentación/pruebas", value=True)
+    with col9:
+        incluir_reserva = st.checkbox("Reserva de acciones y derechos", value=True)
+    with col10:
+        incluir_costas = st.checkbox("Apercibimiento de gastos y costas", value=True)
+    with col11:
+        abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo", value=False)
+
+    texto_personalizado = ""
+    if tipo == "Otra (personalizada)":
+        texto_personalizado = st.text_area("Texto base personalizado (1–4 líneas)", height=80)
+
+    if st.button("Generar Carta Documento"):
+        t = "CARTA DOCUMENTO\n"
+        t += f"Lugar/Jurisdicción: {safe(jurisd,'[Lugar]')}\n"
+        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
+        if referencia.strip():
+            t += f"Referencia: {referencia.strip()}\n"
+        t += "\n"
+        t += f"Remitente: {safe(remitente,'[Remitente]')}\n"
+        t += f"Domicilio: {safe(dom_remitente,'[Domicilio remitente]')}\n"
+        t += f"Destinatario: {safe(destinatario,'[Destinatario]')}\n"
+        t += f"Domicilio: {safe(dom_destinatario,'[Domicilio destinatario]')}\n"
+
+        t += "\n\nPor la presente, "
+
+        if tipo == "Intimación de pago (deuda)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto,'[Monto]')} en concepto de deuda, {linea_amenaza(tono)}"
+        elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza(tono)}"
+        elif tipo == "Rescisión / Resolución contractual":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza(tono)}"
+        elif tipo == "Cese de conducta / daños":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza(tono)}"
+        elif tipo == "Laboral (intimación / regularización)":
+            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza(tono)}"
+        else:
+            base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
+            t += f"{base} {linea_amenaza(tono)}"
+
+        t += "\n\nHechos/antecedentes:\n"
+        t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
+
+        if pedido_concreto.strip():
+            t += "\n\nPedido concreto:\n"
+            t += pedido_concreto.strip()
+
+        if mencionar_pruebas:
+            t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
+        if abrir_acuerdo:
+            t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
+        if incluir_costas:
+            t += "\n\nTodo ello con más intereses, gastos y costas."
+        if incluir_reserva:
+            t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+        t += "\n\nQueda Ud. debidamente notificado."
+        t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.text_area("Resultado", t, height=420)
+        exportar_word(t, "Carta_Documento_Estudio_Peire")
+
+# =========================================================
+# 2) RESPUESTA A CARTA DOCUMENTO
+# =========================================================
+elif menu == "Respuesta Carta Documento":
+    st.header("✉️ Respuesta a Carta Documento")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        postura = st.selectbox("Postura", ["Negar deuda/hechos", "Aceptar parcialmente", "Proponer acuerdo", "Rechazar e intimar"])
+    with col2:
+        tono = st.selectbox("Tono", ["Neutral", "Firme", "Muy firme"])
+    with col3:
+        plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
+
+    texto_recibido = st.text_area("Texto recibido (pegar)", height=120)
+    hechos_reales = st.text_area("Hechos reales del cliente (lo que SÍ pasó)", height=120)
+
+    col4, col5, col6, col7 = st.columns(4)
+    with col4:
+        mencionar_pruebas = st.checkbox("Mencionar pruebas/documentación", value=True)
+    with col5:
+        incluir_reserva = st.checkbox("Reserva de acciones y derechos", value=True)
+    with col6:
+        incluir_costas = st.checkbox("Apercibimiento de gastos y costas", value=True)
+    with col7:
+        intimar_cese = st.checkbox("Intimar rectificación / cese de reclamo", value=False)
+
+    propuesta = ""
+    if postura in ["Aceptar parcialmente", "Proponer acuerdo"]:
+        propuesta = st.text_area("Propuesta (pago/plan/condiciones)", height=90)
+
+    if st.button("Generar Respuesta"):
+        t = "RESPUESTA A CARTA DOCUMENTO\n\n"
+        t += "En relación a su comunicación, mediante la cual manifiesta:\n\n"
+        t += safe(texto_recibido, "[Pegar texto recibido]") + "\n\n"
+
+        if postura == "Negar deuda/hechos":
+            if tono == "Neutral":
+                t += "Se rechazan los hechos y manifestaciones allí vertidas por no ajustarse a la realidad.\n"
+            elif tono == "Firme":
+                t += "Se rechazan los hechos y el derecho invocados por improcedentes y carentes de sustento.\n"
+            else:
+                t += "Se niegan categóricamente los hechos y el derecho invocados por resultar falsos, improcedentes y carentes de respaldo.\n"
+        elif postura == "Aceptar parcialmente":
+            t += "Se efectúan las siguientes aclaraciones, aceptándose únicamente lo que se indica en forma expresa y rechazándose todo lo demás.\n"
+        elif postura == "Proponer acuerdo":
+            t += "Sin reconocer hechos ni derecho y a fin de evitar mayores costos y litigiosidad, se propone la siguiente vía de solución.\n"
+        else:
+            if tono == "Muy firme":
+                t += "Se rechazan de plano sus manifestaciones y se lo intima a cesar con reclamos infundados.\n"
+            else:
+                t += "Se rechazan sus manifestaciones y se lo intima a adecuar su conducta conforme derecho.\n"
+
+        t += "\nHechos reales / posición de mi representado:\n"
+        t += safe(hechos_reales, "[Describir hechos reales]") + "\n"
+
+        if mencionar_pruebas:
+            t += "\nSe deja constancia que se cuenta con documentación y/o elementos probatorios respaldatorios, los cuales serán oportunamente acompañados de corresponder.\n"
+
+        if propuesta.strip():
+            t += "\nPropuesta:\n" + propuesta.strip() + "\n"
+
+        if intimar_cese:
+            t += f"\nINTIMO a Ud. a rectificar y/o cesar el reclamo improcedente en el plazo de {plazo_intimacion}, bajo apercibimiento de iniciar las acciones pertinentes.\n"
+
+        if incluir_costas:
+            t += "\nTodo ello con más gastos y costas.\n"
+        if incluir_reserva:
+            t += "\nSe reserva expresamente el ejercicio de acciones y derechos.\n"
+
+        t += "\nQueda Ud. debidamente notificado.\n"
+        t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.text_area("Resultado", t, height=420)
+        exportar_word(t, "Respuesta_Carta_Documento_Estudio_Peire")
+
+# =========================================================
+# 3) CONTESTACIÓN DE OFICIO
+# =========================================================
+elif menu == "Contestación de Oficio":
+    st.header("📑 Contestación de Oficio")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        organismo = st.text_input("Organismo / Juzgado")
+        dependencia = st.text_input("Dependencia/Secretaría (opcional)")
+    with col2:
+        expediente = st.text_input("Carátula / Expediente")
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
+
+    objeto = st.text_input("Objeto del oficio (1 línea)")
+    pedido = st.text_area("Pedido del oficio (copiar/pegar)", height=110)
+    respuesta = st.text_area("Información a informar (ordenada y completa)", height=140)
+
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        confidencialidad = st.checkbox("Agregar nota de confidencialidad/uso exclusivo", value=True)
+    with col4:
+        adjuntos = st.text_input("Adjuntos (listar, opcional)", value="")
+    with col5:
+        requiere_consent = st.checkbox("Aclarar facultades/consentimiento (si aplica)", value=False)
+
+    if st.button("Generar Contestación"):
+        t = "CONTESTACIÓN DE OFICIO\n\n"
+        t += f"A: {safe(organismo,'[Organismo/Juzgado]')}\n"
+        if dependencia.strip():
+            t += f"Dependencia: {dependencia.strip()}\n"
+        if expediente.strip():
+            t += f"Ref.: {expediente.strip()}\n"
+        t += f"Fecha: {safe(fecha,'[Fecha]')}\n\n"
+
+        if objeto.strip():
+            t += f"Objeto: {objeto.strip()}\n\n"
+
+        t += "En respuesta al oficio recibido, se informa lo siguiente:\n\n"
+        if pedido.strip():
+            t += "I. Pedido del oficio:\n"
+            t += pedido.strip() + "\n\n"
+
+        t += "II. Respuesta:\n"
+        t += safe(respuesta, "[Completar información solicitada]") + "\n"
+
+        if adjuntos.strip():
+            t += "\nIII. Documentación adjunta:\n" + adjuntos.strip() + "\n"
+
+        if requiere_consent:
+            t += "\nSe deja constancia que la presente información se brinda en el marco de las facultades y autorizaciones correspondientes.\n"
+
+        if confidencialidad:
+            t += "\nLa presente contestación se emite a los fines del requerimiento indicado, para uso exclusivo del organismo requirente.\n"
+
+        t += "\nSin otro particular, saludo atentamente.\n"
+        t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.text_area("Resultado", t, height=420)
+        exportar_word(t, "Contestacion_Oficio_Estudio_Peire")
+
+# =========================================================
+# 4) MAILING MODO AGENTE
+# =========================================================
+elif menu == "Mailing (Modo Agente)":
+    st.header("📧 Mailing (Modo Agente)")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        tipo_mail = st.selectbox("Tipo de mensaje", ["Actualización de caso", "Pedido de documentación", "Seguimiento", "Cierre / próximos pasos", "Recordatorio"])
+    with col2:
+        tono = st.selectbox("Tono", ["Cálido y profesional", "Muy formal", "Breve y directo"])
+    with col3:
+        canal = st.selectbox("Canal", ["Email", "WhatsApp (texto corto)"])
+
+    cliente = st.text_input("Nombre del cliente")
+    caso = st.text_input("Caso/Asunto general (ej: alquiler, laboral, daños)")
+    estado = st.text_area("Estado actual / contexto (2–6 líneas)", height=100)
+    proximo_paso = st.text_area("Próximo paso (qué tiene que pasar ahora)", height=80)
+    accion_cliente = st.text_input("Acción requerida al cliente (si aplica)", value="")
+
+    col4, col5 = st.columns(2)
+    with col4:
+        incluir_disclaimer = st.checkbox("Incluir disclaimer (confidencialidad)", value=True)
+    with col5:
+        incluir_agenda = st.checkbox("Sugerir coordinación de llamada/reunión", value=False)
+
+    if st.button("Generar Mailing"):
+        nombre_cli = safe(cliente, "[Cliente]")
+        caso_txt = safe(caso, "[Caso]")
+
+        if tipo_mail == "Actualización de caso":
+            asunto = f"Actualización – {caso_txt}"
+        elif tipo_mail == "Pedido de documentación":
+            asunto = f"Documentación necesaria – {caso_txt}"
+        elif tipo_mail == "Seguimiento":
+            asunto = f"Seguimiento – {caso_txt}"
+        elif tipo_mail == "Cierre / próximos pasos":
+            asunto = f"Próximos pasos – {caso_txt}"
+        else:
+            asunto = f"Recordatorio – {caso_txt}"
+
+        if canal == "WhatsApp (texto corto)":
+            t = f"{nombre_cli}, te escribo desde {estudio}. "
+            if tipo_mail == "Pedido de documentación":
+                t += "Necesitamos la siguiente documentación/confirmación para avanzar. "
+            t += safe(estado, "Actualización del caso. ").strip() + " "
+            if accion_cliente.strip():
+                t += f"¿Podés enviarnos: {accion_cliente.strip()}? "
+            if proximo_paso.strip():
+                t += f"Próximo paso: {proximo_paso.strip()} "
+            if incluir_agenda:
+                t += "Si te parece, coordinamos una llamada breve. "
+            if incluir_disclaimer:
+                t += "Mensaje confidencial."
+            st.text_area("Resultado (WhatsApp)", t, height=220)
+            exportar_word(t, "WhatsApp_Estudio_Peire")
+        else:
+            if tono == "Cálido y profesional":
+                saludo = f"Hola {nombre_cli},"
+                cierre = "Un saludo"
+            elif tono == "Muy formal":
+                saludo = f"De mi mayor consideración {nombre_cli}:"
+                cierre = "Atentamente"
+            else:
+                saludo = f"{nombre_cli},"
+                cierre = "Saludos"
+
+            cuerpo = f"Asunto: {asunto}\n\n{saludo}\n\n"
+            cuerpo += safe(estado, "[Estado actual del caso]") + "\n\n"
+
+            if tipo_mail == "Pedido de documentación" and accion_cliente.strip():
+                cuerpo += f"Para poder avanzar, necesitamos que nos envíes: {accion_cliente.strip()}.\n\n"
+            elif accion_cliente.strip():
+                cuerpo += f"Acción requerida: {accion_cliente.strip()}.\n\n"
+
+            if proximo_paso.strip():
+                cuerpo += f"Próximo paso: {proximo_paso.strip()}.\n\n"
+
+            if incluir_agenda:
+                cuerpo += "Si estás de acuerdo, coordinamos una llamada/reunión breve para confirmar los próximos pasos.\n\n"
+
+            if incluir_disclaimer:
+                cuerpo += "Este mensaje contiene información confidencial. Si no sos el destinatario, por favor informanos y eliminá el contenido.\n\n"
+
+            cuerpo += f"{cierre},\n{estudio}\n"
+            if contacto.strip():
+                cuerpo += f"{contacto}\n"
+
+            st.text_area("Resultado (Email)", cuerpo, height=360)
+            exportar_word(cuerpo, "Email_Estudio_Peire")
+
+# =========================================================
+# 5) PRESUPUESTO
+# =========================================================
+elif menu == "Presupuesto":
+    st.header("💼 Presupuesto de Honorarios")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        cliente = st.text_input("Cliente")
+        servicio = st.text_input("Servicio")
+    with col2:
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
+        validez = st.selectbox("Validez del presupuesto", ["7 días", "10 días", "15 días", "30 días"])
+
+    modalidad = st.selectbox("Modalidad", ["Monto fijo", "Por etapas", "Success fee", "Mixto (fijo + success fee)"])
+    honorarios = st.text_input("Honorarios / Monto / Porcentaje (según modalidad)")
+
+    alcance = st.text_area("Alcance (qué incluye)", height=110)
+    no_incluye = st.text_area("No incluye (limitaciones)", height=90)
+    plazos = st.text_area("Plazos estimados", height=80)
+    forma_pago = st.text_area("Forma de pago", height=80)
+
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        incluir_impuestos = st.checkbox("Aclarar impuestos/retenciones (si aplica)", value=True)
+    with col4:
+        incluir_gastos = st.checkbox("Aclarar gastos (tasa, diligencias, etc.)", value=True)
+    with col5:
+        incluir_condiciones = st.checkbox("Condiciones generales (cambios de alcance)", value=True)
+
+    observaciones = st.text_area("Observaciones (opcional)", height=70)
+
+    if st.button("Generar Presupuesto"):
+        t = "PRESUPUESTO DE HONORARIOS\n\n"
+        t += f"Estudio: {estudio}\n"
+        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
+        t += f"Cliente: {safe(cliente,'[Cliente]')}\n"
+        t += f"Servicio: {safe(servicio,'[Servicio]')}\n\n"
+
+        t += f"Modalidad: {modalidad}\n"
+        t += f"Honorarios: {safe(honorarios,'[Completar]')}\n\n"
+
+        t += "Alcance (incluye):\n" + safe(alcance, "[Detallar alcance]") + "\n\n"
+        t += "No incluye:\n" + safe(no_incluye, "[Detallar exclusiones]") + "\n\n"
+        t += "Plazos estimados:\n" + safe(plazos, "[Detallar plazos]") + "\n\n"
+        t += "Forma de pago:\n" + safe(forma_pago, "[Detallar forma de pago]") + "\n\n"
+
+        if incluir_gastos:
+            t += "Gastos:\nLos gastos y erogaciones (tasa, diligenciamientos, informes, cédulas, traslados, etc.) no se encuentran incluidos salvo indicación expresa.\n\n"
+        if incluir_impuestos:
+            t += "Impuestos/retenciones:\nLos importes podrán estar sujetos a impuestos y/o retenciones según normativa aplicable.\n\n"
+        if incluir_condiciones:
+            t += "Condiciones generales:\nEl presente presupuesto se basa en la información provista. Cualquier ampliación del alcance o complejidad no prevista podrá implicar ajustes.\n\n"
+
+        t += f"Validez: {validez}\n"
+        if observaciones.strip():
+            t += "\nObservaciones:\n" + observaciones.strip() + "\n"
+
+        t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.text_area("Resultado", t, height=420)
+        exportar_word(t, "Presupuesto_Estudio_Peire")
+
+# =========================================================
+# 6) BIBLIOTECA DE PROMPTS
+# =========================================================
+elif menu == "Biblioteca Oficial de Prompts":
+    st.header("📚 Biblioteca Oficial de Prompts – Estudio Peire")
+    st.caption("Para usar cuando activen IA real (Chat/API). Esto estandariza el estilo del equipo.")
+
+    st.subheader("Prompt maestro (pegar al inicio)")
+    st.code(
+"""Sos asistente del Estudio Peire. Objetivo: redactar BORRADORES y ordenar información.
+Reglas:
+- No inventes jurisprudencia, normas ni citas.
+- Si faltan datos, preguntá de forma concreta.
+- Redactá en español, tono profesional y claro.
+- Entregá siempre: (a) texto final editable, (b) checklist de datos a verificar, (c) riesgos/puntos sensibles.
+- Incluir al final: "Revisar y adecuar por profesional antes de enviar/presentar". """
+    )
+
+    st.subheader("Carta Documento")
+    st.code(
+"""Necesito un borrador de CARTA DOCUMENTO (Argentina), estilo Estudio Peire.
+Datos:
+- Tipo:
+- Remitente + domicilio:
+- Destinatario + domicilio:
+- Hechos (cronología breve):
+- Monto (si aplica):
+- Plazo intimado:
+- Pedido concreto:
+- Documentación/pruebas:
+- Tono: neutral/firme/muy firme
+Entregá:
+1) Texto listo
+2) Versión alternativa más firme
+3) Checklist y riesgos."""
+    )
+
+    st.subheader("Respuesta a Carta Documento")
+    st.code(
+"""Redactá RESPUESTA a carta documento (Argentina), estilo Estudio Peire.
+Texto recibido:
+[...]
+Hechos reales del cliente:
+[...]
+Objetivo: negar / aceptar parcial / proponer acuerdo / intimar
+Tono: neutral/firme/muy firme
+Entregá texto + puntos sensibles + preguntas faltantes."""
+    )
+
+    st.subheader("Contestación de Oficio")
+    st.code(
+"""Borrador de CONTESTACIÓN DE OFICIO.
+Organismo/Juzgado:
+Expte/Carátula:
+Pedido del oficio:
+Datos a informar:
+Adjuntos:
+¿Confidencialidad/consentimiento?:
+Entregá texto listo + campos a completar + advertencias."""
+    )
+
+    st.subheader("Mailing modo agente")
+    st.code(
+"""Actuá como agente de atención al cliente del Estudio Peire.
+Objetivo: actualización / pedir docs / seguimiento / cierre
+Cliente:
+Caso:
+Estado actual:
+Acción requerida:
+Próximo paso:
+Tono: cálido / formal / breve
+Entregá: Email + WhatsApp corto + versión formal."""
+    )
+
+    st.subheader("Presupuesto")
+    st.code(
+"""Generá un presupuesto estilo Estudio Peire.
+Cliente:
+Servicio:
+Modalidad:
+Honorarios:
+Incluye:
+No incluye:
+Plazos:
+Forma de pago:
+Validez:
+Entregá presupuesto listo + variables que cambian costo + texto breve para WhatsApp."""
+    )
+
+# =========================================================
+# 7) CÓMO USAR Y COMPARTIR
+# =========================================================
+else:
+    st.header("⚙️ Cómo usar y compartir con el estudio (hoy mismo)")
+
+    st.markdown(
+"""
+### Opción rápida (demo en la oficina)
+1) Copiá la carpeta `asistente-estudio` a otra PC (pendrive/drive).
+2) En esa PC instalan Python (si no está).
+3) En PowerShell, dentro de la carpeta, ejecutan:
+   - `python -m venv .venv`
+   - `.\.venv\Scripts\Activate.ps1`
+   - `pip install streamlit python-docx`
+   - `streamlit run app.py`
+
+### Opción “que lo use cualquiera en la red”
+En una PC que haga de “servidor”:
+- `streamlit run app.py --server.address 0.0.0.0 --server.port 8501`
+
+Luego, en otras PCs del estudio:
+- Abrir navegador y entrar a `http://IP_DE_LA_PC:8501`
+
+> Windows Firewall puede pedir permiso: aceptar en red privada.
+
+### Más adelante (IA real)
+Cuando activen IA real, esto se mejora:
+- Mejor redacción automática
+- Resumen de PDFs
+- Chat sobre documentos del estudio (RAG)
+"""
+    )
