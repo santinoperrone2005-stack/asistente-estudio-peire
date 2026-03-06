@@ -1,5 +1,16 @@
 import streamlit as st
+from docx import Document
+from io import BytesIO
+from datetime import date
 
+# =============================
+# CONFIG INICIAL
+# =============================
+st.set_page_config(page_title="Sistema Interno - Estudio Peire", layout="wide")
+
+# =============================
+# LOGIN SIMPLE
+# =============================
 USER = "estudio"
 PASSWORD = "peire2026"
 
@@ -21,16 +32,9 @@ if not st.session_state.logged_in:
 
     st.stop()
 
-import streamlit as st
-from docx import Document
-from io import BytesIO
-from datetime import date
-
-st.set_page_config(page_title="Sistema Interno - Estudio Peire", layout="wide")
-
-# -----------------------------
-# Helpers
-# -----------------------------
+# =============================
+# HELPERS
+# =============================
 def exportar_word(texto: str, nombre_archivo: str):
     doc = Document()
     for linea in texto.strip().split("\n"):
@@ -67,17 +71,17 @@ def linea_amenaza(tono: str):
         return "bajo apercibimiento de iniciar acciones legales sin más trámite, con más gastos y costas."
     return "bajo apercibimiento de promover de inmediato las acciones judiciales pertinentes, con más intereses, daños, gastos y costas."
 
-# -----------------------------
-# Header
-# -----------------------------
+# =============================
+# HEADER
+# =============================
 st.markdown("## 🏛 Sistema Interno")
 st.markdown("### Estudio Peire")
 st.markdown("---")
 st.warning("⚠️ Versión DEMO – Contenidos orientativos. Todo debe ser revisado/adecuado por profesional antes de enviar o presentar.")
 
-# -----------------------------
-# Sidebar: menú + firma
-# -----------------------------
+# =============================
+# SIDEBAR
+# =============================
 menu = st.sidebar.radio(
     "Herramientas",
     [
@@ -91,7 +95,6 @@ menu = st.sidebar.radio(
         "Cómo usar y compartir",
     ],
     index=0,
-
 )
 
 st.sidebar.markdown("---")
@@ -218,6 +221,15 @@ if menu == "Carta Documento":
 elif menu == "Respuesta Carta Documento":
     st.header("✉️ Respuesta a Carta Documento")
 
+    if "analisis_para_respuesta" in st.session_state:
+        datos = st.session_state["analisis_para_respuesta"]
+        st.info(
+            f"Se cargó información desde 'Análisis de Documento'. "
+            f"Remitente: {datos.get('remitente', '[No informado]')} | "
+            f"Destinatario: {datos.get('destinatario', '[No informado]')} | "
+            f"Objeto: {datos.get('objeto', '[No informado]')}"
+        )
+
     col1, col2, col3 = st.columns(3)
     with col1:
         postura = st.selectbox("Postura", ["Negar deuda/hechos", "Aceptar parcialmente", "Proponer acuerdo", "Rechazar e intimar"])
@@ -226,8 +238,19 @@ elif menu == "Respuesta Carta Documento":
     with col3:
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
 
-    texto_recibido = st.text_area("Texto recibido (pegar)", height=120)
-    hechos_reales = st.text_area("Hechos reales del cliente (lo que SÍ pasó)", height=120)
+    datos_analisis = st.session_state.get("analisis_para_respuesta", {})
+
+    texto_recibido = st.text_area(
+        "Texto recibido (pegar)",
+        value=datos_analisis.get("texto_recibido", ""),
+        height=120
+    )
+
+    hechos_reales = st.text_area(
+        "Hechos reales del cliente (lo que SÍ pasó)",
+        value=datos_analisis.get("hechos_reales", ""),
+        height=120
+    )
 
     col4, col5, col6, col7 = st.columns(4)
     with col4:
@@ -504,7 +527,7 @@ elif menu == "Presupuesto":
         exportar_word(t, "Presupuesto_Estudio_Peire")
 
 # =========================================================
-# 6)ANALISIS DE DOCUMENTO 
+# 6) ANÁLISIS DE DOCUMENTO
 # =========================================================
 elif menu == "Análisis de Documento":
     st.header("📂 Análisis de Documento")
@@ -587,6 +610,19 @@ Resumen / puntos importantes:
 SUGERENCIA DE PRÓXIMO PASO:
 Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
 """
+            st.session_state["analisis_para_respuesta"] = {
+                "texto_recibido": contenido_txt if contenido_txt else resumen,
+                "hechos_reales": observaciones,
+                "remitente": remitente,
+                "destinatario": destinatario,
+                "fecha_doc": fecha_doc,
+                "monto": monto,
+                "objeto": objeto,
+                "tipo_documento": tipo_documento,
+                "resumen": resumen,
+            }
+
+            st.success("Análisis guardado. Ahora podés ir a 'Respuesta Carta Documento' y usar estos datos.")
             st.text_area("Borrador base", borrador, height=350)
             exportar_word(borrador, "Analisis_Documento_Estudio_Peire")
 
@@ -613,7 +649,7 @@ Observaciones:
             exportar_word(ficha, "Ficha_Documento_Estudio_Peire")
 
 # =========================================================
-# 7)BIBLIOTECA OFICIAL DE PROMPTS
+# 7) BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
 elif menu == "Biblioteca Oficial de Prompts":
     st.header("📚 Biblioteca Oficial de Prompts – Estudio Peire")
@@ -702,7 +738,7 @@ Entregá presupuesto listo + variables que cambian costo + texto breve para What
     )
 
 # =========================================================
-# 7) CÓMO USAR Y COMPARTIR
+# 8) CÓMO USAR Y COMPARTIR
 # =========================================================
 else:
     st.header("⚙️ Cómo usar y compartir con el estudio (hoy mismo)")
