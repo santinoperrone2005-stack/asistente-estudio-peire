@@ -2,6 +2,7 @@ import streamlit as st
 from docx import Document
 from io import BytesIO
 from datetime import date
+from pypdf import PdfReader
 
 # =============================
 # CONFIG INICIAL
@@ -70,7 +71,34 @@ def linea_amenaza(tono: str):
     if tono == "Firme":
         return "bajo apercibimiento de iniciar acciones legales sin más trámite, con más gastos y costas."
     return "bajo apercibimiento de promover de inmediato las acciones judiciales pertinentes, con más intereses, daños, gastos y costas."
+def extraer_texto_archivo(uploaded_file):
+    if uploaded_file is None:
+        return ""
 
+    nombre = uploaded_file.name.lower()
+
+    try:
+        if nombre.endswith(".txt"):
+            return uploaded_file.read().decode("utf-8")
+
+        elif nombre.endswith(".pdf"):
+            reader = PdfReader(uploaded_file)
+            texto = ""
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    texto += page_text + "\n"
+            return texto.strip()
+
+        elif nombre.endswith(".docx"):
+            doc = Document(uploaded_file)
+            texto = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+            return texto.strip()
+
+        else:
+            return ""
+    except Exception as e:
+        return f"ERROR_AL_LEER_ARCHIVO: {str(e)}"
 # =============================
 # HEADER
 # =============================
@@ -556,22 +584,21 @@ elif menu == "Análisis de Documento":
         placeholder="Ej: este documento llegó hoy, corresponde a un reclamo por alquiler, el cliente dice que ya pagó, etc."
     )
 
-    contenido_txt = ""
+    contenido_extraido = ""
 
     if uploaded_file is not None:
         st.success(f"Archivo cargado: {uploaded_file.name}")
 
-        extension = uploaded_file.name.split(".")[-1].lower()
+        contenido_extraido = extraer_texto_archivo(uploaded_file)
 
-        if extension == "txt":
-            try:
-                contenido_txt = uploaded_file.read().decode("utf-8")
-                st.subheader("Contenido detectado")
-                st.text_area("Texto del archivo", contenido_txt, height=250)
-            except Exception:
-                st.warning("No se pudo leer el archivo TXT correctamente.")
+        if contenido_extraido.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(contenido_extraido)
+            contenido_extraido = ""
+        elif contenido_extraido.strip():
+            st.subheader("Contenido detectado")
+            st.text_area("Texto extraído del archivo", contenido_extraido, height=250)
         else:
-            st.info("Por ahora, los archivos PDF y DOCX se cargan como referencia. Más adelante podemos hacer lectura automática con IA o procesamiento de documentos.")
+            st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
 
     st.subheader("Datos clave del documento")
     remitente = st.text_input("Remitente")
@@ -590,6 +617,8 @@ elif menu == "Análisis de Documento":
 
     with col1:
         if st.button("Preparar borrador de respuesta"):
+            texto_base = contenido_extraido if contenido_extraido else resumen
+
             borrador = f"""
 ANÁLISIS DEL DOCUMENTO
 
@@ -607,11 +636,14 @@ Observaciones del estudio:
 Resumen / puntos importantes:
 {resumen or "[Sin resumen]"}
 
+Texto extraído del archivo:
+{texto_base or "[Sin texto extraído]"}
+
 SUGERENCIA DE PRÓXIMO PASO:
 Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
 """
             st.session_state["analisis_para_respuesta"] = {
-                "texto_recibido": contenido_txt if contenido_txt else resumen,
+                "texto_recibido": texto_base,
                 "hechos_reales": observaciones,
                 "remitente": remitente,
                 "destinatario": destinatario,
@@ -642,12 +674,14 @@ Objeto: {objeto or "[No informado]"}
 Resumen:
 {resumen or "[Sin resumen]"}
 
+Texto extraído:
+{contenido_extraido or "[Sin texto extraído]"}
+
 Observaciones:
 {observaciones or "[Sin observaciones]"}
 """
             st.text_area("Ficha del documento", ficha, height=350)
             exportar_word(ficha, "Ficha_Documento_Estudio_Peire")
-
 # =========================================================
 # 7) BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
