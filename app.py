@@ -99,6 +99,20 @@ def extraer_texto_archivo(uploaded_file):
             return ""
     except Exception as e:
         return f"ERROR_AL_LEER_ARCHIVO: {str(e)}"
+
+from datetime import datetime
+
+def guardar_en_historial(tipo: str, titulo: str, contenido: str):
+    if "historial_documentos" not in st.session_state:
+        st.session_state["historial_documentos"] = []
+
+    st.session_state["historial_documentos"].insert(0, {
+        "tipo": tipo,
+        "titulo": titulo,
+        "contenido": contenido,
+        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
+    })
+
 # =============================
 # HEADER
 # =============================
@@ -113,12 +127,14 @@ st.warning("⚠️ Versión DEMO – Contenidos orientativos. Todo debe ser revi
 menu = st.sidebar.radio(
     "Herramientas",
     [
+        "Dashboard",
         "Carta Documento",
         "Respuesta Carta Documento",
         "Contestación de Oficio",
         "Mailing (Modo Agente)",
         "Presupuesto",
         "Análisis de Documento",
+        "Historial",
         "Biblioteca Oficial de Prompts",
         "Cómo usar y compartir",
     ],
@@ -135,9 +151,80 @@ with st.sidebar.expander("🖊️ Datos de firma (se agregan al final)", expande
     contacto = st.text_input("Contacto (email/teléfono)", value="")
 
 # =========================================================
+# 0) DASHBOARD
+# =========================================================
+if menu == "Dashboard":
+    st.header("📊 Dashboard")
+
+    historial = st.session_state.get("historial_documentos", [])
+    cantidad_docs = len(historial)
+
+    ultimo_doc = historial[0] if cantidad_docs > 0 else None
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Documentos generados", cantidad_docs)
+
+    with col2:
+        st.metric(
+            "Último tipo",
+            ultimo_doc["tipo"] if ultimo_doc else "Sin datos"
+        )
+
+    with col3:
+        st.metric(
+            "Última fecha",
+            ultimo_doc["fecha"] if ultimo_doc else "Sin datos"
+        )
+
+    st.markdown("---")
+
+    st.subheader("Bienvenida")
+    st.write(
+        "Este panel centraliza las herramientas del Estudio Peire para generación, análisis y seguimiento documental."
+    )
+
+    st.subheader("Accesos rápidos")
+    col_a, col_b, col_c = st.columns(3)
+
+    with col_a:
+        st.info("📄 Carta Documento\n\nGenerar intimaciones, reclamos y borradores.")
+    with col_b:
+        st.info("✉️ Respuesta CD\n\nResponder documentos recibidos usando análisis previo.")
+    with col_c:
+        st.info("📂 Análisis\n\nSubir documentos, extraer texto y preparar respuestas.")
+
+    col_d, col_e, col_f = st.columns(3)
+
+    with col_d:
+        st.info("📑 Oficios\n\nPreparar contestaciones de oficio.")
+    with col_e:
+        st.info("📧 Mailing\n\nRedactar emails y mensajes al cliente.")
+    with col_f:
+        st.info("🕘 Historial\n\nConsultar documentos generados en esta sesión.")
+
+    st.markdown("---")
+
+    st.subheader("Estado del sistema")
+    st.success("✅ Aplicación online")
+    st.success("✅ Login activo")
+    st.success("✅ Lectura de TXT / PDF / DOCX")
+    st.success("✅ Flujo Análisis → Respuesta")
+    st.success("✅ Historial en sesión")
+
+    if ultimo_doc:
+        st.markdown("---")
+        st.subheader("Último documento generado")
+        st.write(f"**Tipo:** {ultimo_doc['tipo']}")
+        st.write(f"**Título:** {ultimo_doc['titulo']}")
+        st.write(f"**Fecha:** {ultimo_doc['fecha']}")
+        st.text_area("Vista previa", ultimo_doc["contenido"], height=220, disabled=True)
+
+# =========================================================
 # 1) CARTA DOCUMENTO
 # =========================================================
-if menu == "Carta Documento":
+elif menu == "Carta Documento":
     st.header("📄 Carta Documento")
 
     col1, col2 = st.columns(2)
@@ -240,6 +327,11 @@ if menu == "Carta Documento":
         t += "\n\nQueda Ud. debidamente notificado."
         t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        guardar_en_historial(
+    tipo="Carta Documento",
+    titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
+    contenido=t
+)
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Carta_Documento_Estudio_Peire")
 
@@ -345,6 +437,12 @@ elif menu == "Respuesta Carta Documento":
         t += "\nQueda Ud. debidamente notificado.\n"
         t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        guardar_en_historial(
+    tipo="Respuesta Carta Documento",
+    titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
+    contenido=t
+)
+        
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Respuesta_Carta_Documento_Estudio_Peire")
 
@@ -406,6 +504,11 @@ elif menu == "Contestación de Oficio":
         t += "\nSin otro particular, saludo atentamente.\n"
         t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        guardar_en_historial(
+    tipo="Contestación de Oficio",
+    titulo=f"Oficio - {organismo or 'Sin organismo'}",
+    contenido=t
+)
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Contestacion_Oficio_Estudio_Peire")
 
@@ -463,6 +566,13 @@ elif menu == "Mailing (Modo Agente)":
                 t += "Si te parece, coordinamos una llamada breve. "
             if incluir_disclaimer:
                 t += "Mensaje confidencial."
+            
+            guardar_en_historial(
+    tipo="Mailing WhatsApp",
+    titulo=f"WhatsApp - {cliente or 'Sin cliente'}",
+    contenido=t
+)    
+
             st.text_area("Resultado (WhatsApp)", t, height=220)
             exportar_word(t, "WhatsApp_Estudio_Peire")
         else:
@@ -496,6 +606,12 @@ elif menu == "Mailing (Modo Agente)":
             cuerpo += f"{cierre},\n{estudio}\n"
             if contacto.strip():
                 cuerpo += f"{contacto}\n"
+
+            guardar_en_historial(
+    tipo="Mailing Email",
+    titulo=f"Email - {cliente or 'Sin cliente'}",
+    contenido=cuerpo
+)
 
             st.text_area("Resultado (Email)", cuerpo, height=360)
             exportar_word(cuerpo, "Email_Estudio_Peire")
@@ -560,6 +676,12 @@ elif menu == "Presupuesto":
 
         t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        guardar_en_historial(
+    tipo="Presupuesto",
+    titulo=f"Presupuesto - {cliente or 'Sin cliente'}",
+    contenido=t
+)
+        
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Presupuesto_Estudio_Peire")
 
@@ -663,6 +785,12 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
                 "resumen": resumen,
             }
 
+            guardar_en_historial(
+    tipo="Análisis de Documento",
+    titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
+    contenido=borrador
+)
+            
             st.success("Análisis guardado. Ahora podés ir a 'Respuesta Carta Documento' y usar estos datos.")
             st.text_area("Borrador base", borrador, height=350)
             exportar_word(borrador, "Analisis_Documento_Estudio_Peire")
@@ -689,10 +817,45 @@ Texto extraído:
 Observaciones:
 {observaciones or "[Sin observaciones]"}
 """
+            guardar_en_historial(
+    tipo="Ficha de Documento",
+    titulo=f"Ficha - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
+    contenido=ficha
+)
+            
             st.text_area("Ficha del documento", ficha, height=350)
             exportar_word(ficha, "Ficha_Documento_Estudio_Peire")
+
 # =========================================================
-# 7) BIBLIOTECA OFICIAL DE PROMPTS
+# 7) HISTORIAL
+# =========================================================
+elif menu == "Historial":
+    st.header("🕘 Historial de Documentos")
+
+    historial = st.session_state.get("historial_documentos", [])
+
+    if not historial:
+        st.info("Todavía no se generaron documentos en esta sesión.")
+    else:
+        st.write(f"Se encontraron {len(historial)} documento(s) generados.")
+
+        for i, item in enumerate(historial):
+            with st.expander(f"{item['fecha']} | {item['tipo']} | {item['titulo']}"):
+                st.text_area(
+                    f"Contenido {i+1}",
+                    item["contenido"],
+                    height=250,
+                    key=f"historial_{i}"
+                )
+                exportar_word(item["contenido"], item["titulo"].replace(" ", "_"))
+
+        if st.button("Borrar historial"):
+            st.session_state["historial_documentos"] = []
+            st.success("Historial borrado.")
+            st.rerun()
+
+# =========================================================
+# 8) BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
 elif menu == "Biblioteca Oficial de Prompts":
     st.header("📚 Biblioteca Oficial de Prompts – Estudio Peire")
