@@ -43,6 +43,10 @@ def aplicar_estilo():
             font-weight: 700;
         }}
 
+        label, .stMarkdown, p, span, div {{
+            color: {TEXT};
+        }}
+
         .bloque-header {{
             background: linear-gradient(90deg, #ffffff 0%, #f7fbfd 100%);
             border: 1px solid {BORDER};
@@ -85,14 +89,22 @@ def aplicar_estilo():
             font-size: 0.95rem;
         }}
 
+        .login-wrap {{
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }}
+
         .login-box {{
+            width: 100%;
             max-width: 520px;
-            margin: 40px auto;
             background: #ffffff;
             padding: 32px 28px;
             border-radius: 18px;
             border: 1px solid {BORDER};
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            text-align: center;
         }}
 
         .login-title {{
@@ -104,12 +116,12 @@ def aplicar_estilo():
 
         .login-subtitle {{
             color: {MUTED};
-            margin-bottom: 1.2rem;
+            margin-bottom: 0.2rem;
         }}
 
         .stButton > button {{
             background-color: {PRIMARY};
-            color: white;
+            color: white !important;
             border: none;
             border-radius: 12px;
             padding: 0.65rem 1rem;
@@ -119,11 +131,40 @@ def aplicar_estilo():
 
         .stButton > button:hover {{
             background-color: {PRIMARY_DARK};
-            color: white;
+            color: white !important;
         }}
 
-        .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {{
+        .stTextInput input,
+        .stTextArea textarea {{
+            background-color: #ffffff !important;
+            color: {TEXT} !important;
+            border: 1px solid {BORDER} !important;
             border-radius: 12px !important;
+        }}
+
+        .stTextInput input::placeholder,
+        .stTextArea textarea::placeholder {{
+            color: {MUTED} !important;
+            opacity: 1 !important;
+        }}
+
+        div[data-baseweb="select"] > div {{
+            background-color: #ffffff !important;
+            color: {TEXT} !important;
+            border: 1px solid {BORDER} !important;
+            border-radius: 12px !important;
+        }}
+
+        .stSelectbox * {{
+            color: {TEXT} !important;
+        }}
+
+        .stMultiSelect * {{
+            color: {TEXT} !important;
+        }}
+
+        .stCheckbox label {{
+            color: {TEXT} !important;
         }}
 
         .stAlert {{
@@ -146,7 +187,6 @@ def aplicar_estilo():
         """,
         unsafe_allow_html=True
     )
-
 aplicar_estilo()
 
 # =============================
@@ -167,16 +207,18 @@ def volver_al_dashboard():
 if not st.session_state.logged_in:
     st.markdown(
         """
-        <div class="login-box">
-            <div class="login-title">Estudio Peire</div>
-            <div class="login-subtitle">Sistema interno de trabajo</div>
+        <div class="login-wrap">
+            <div class="login-box">
+                <div class="login-title">Estudio Peire</div>
+                <div class="login-subtitle">Sistema interno de trabajo</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    username = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
+    username = st.text_input("Usuario", placeholder="Ingresá tu usuario")
+    password = st.text_input("Contraseña", type="password", placeholder="Ingresá tu contraseña")
 
     if st.button("Ingresar al sistema"):
         if username == USER and password == PASSWORD:
@@ -451,17 +493,17 @@ elif menu == "Carta Documento":
 
     col1, col2 = st.columns(2)
     with col1:
-        remitente = st.text_input("Remitente / Cliente")
-        dom_remitente = st.text_input("Domicilio remitente")
+        remitente = st.text_input("Remitente / Cliente", placeholder="Ej: Carlos Raúl Fernández")
+        dom_remitente = st.text_input("Domicilio remitente", placeholder="Ej: Av. Santa Fe 2450, CABA")
     with col2:
-        destinatario = st.text_input("Destinatario")
-        dom_destinatario = st.text_input("Domicilio destinatario")
+        destinatario = st.text_input("Destinatario", placeholder="Ej: Juan Pérez")
+        dom_destinatario = st.text_input("Domicilio destinatario", placeholder="Ej: Av. Rivadavia 1234, CABA")
 
     col3, col4, col5 = st.columns(3)
     with col3:
-        jurisd = st.text_input("Jurisdicción / Ciudad", value="CABA")
+        jurisd = st.text_input("Jurisdicción / Ciudad", value="CABA", placeholder="Ej: CABA")
     with col4:
-        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"), placeholder="Ej: 06/03/2026")
     with col5:
         plazo = st.selectbox("Plazo que se intima", ["24 hs", "48 hs", "72 hs", "5 días", "10 días", "15 días"])
 
@@ -479,83 +521,41 @@ elif menu == "Carta Documento":
 
     col6, col7 = st.columns(2)
     with col6:
-        monto = st.text_input("Monto (si aplica)")
+        monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000")
     with col7:
-        referencia = st.text_input("Referencia/Contrato/Expte (opcional)")
+        referencia = st.text_input("Referencia/Contrato/Expte (opcional)", placeholder="Ej: Contrato 01/12/2025")
 
-    hechos = st.text_area("Hechos / Antecedentes (cronología breve)", height=120)
-    pedido_concreto = st.text_area("Pedido concreto (qué exigís que haga la otra parte)", height=90)
+    hechos = st.text_area(
+        "Hechos / Antecedentes (cronología breve)",
+        height=120,
+        placeholder="Describí brevemente los hechos en orden cronológico."
+    )
 
-    tono = st.selectbox("Tono", ["Neutral", "Firme", "Muy firme"])
+    pedido_concreto = st.text_area(
+        "Pedido concreto (qué exigís que haga la otra parte)",
+        height=90,
+        placeholder="Ej: Intimo a abonar la suma adeudada dentro del plazo indicado."
+    )
 
-    col8, col9, col10, col11 = st.columns(4)
-    with col8:
-        mencionar_pruebas = st.checkbox("Mencionar documentación/pruebas", value=True)
-    with col9:
-        incluir_reserva = st.checkbox("Reserva de acciones y derechos", value=True)
-    with col10:
-        incluir_costas = st.checkbox("Apercibimiento de gastos y costas", value=True)
-    with col11:
-        abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo", value=False)
+    if mencionar_pruebas:
+        t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
+    if abrir_acuerdo:
+        t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
+    if incluir_costas:
+        t += "\n\nTodo ello con más intereses, gastos y costas."
+    if incluir_reserva:
+        t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
 
-    texto_personalizado = ""
-    if tipo == "Otra (personalizada)":
-        texto_personalizado = st.text_area("Texto base personalizado (1–4 líneas)", height=80)
+    t += "\n\nQueda Ud. debidamente notificado."
+    t += bloque_firma(firmante, matricula, estudio, contacto)
 
-    if st.button("Generar Carta Documento"):
-        t = "CARTA DOCUMENTO\n"
-        t += f"Lugar/Jurisdicción: {safe(jurisd,'[Lugar]')}\n"
-        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
-        if referencia.strip():
-            t += f"Referencia: {referencia.strip()}\n"
-        t += "\n"
-        t += f"Remitente: {safe(remitente,'[Remitente]')}\n"
-        t += f"Domicilio: {safe(dom_remitente,'[Domicilio remitente]')}\n"
-        t += f"Destinatario: {safe(destinatario,'[Destinatario]')}\n"
-        t += f"Domicilio: {safe(dom_destinatario,'[Domicilio destinatario]')}\n"
-
-        t += "\n\nPor la presente, "
-
-        if tipo == "Intimación de pago (deuda)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto,'[Monto]')} en concepto de deuda, {linea_amenaza(tono)}"
-        elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza(tono)}"
-        elif tipo == "Rescisión / Resolución contractual":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza(tono)}"
-        elif tipo == "Cese de conducta / daños":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza(tono)}"
-        elif tipo == "Laboral (intimación / regularización)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza(tono)}"
-        else:
-            base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
-            t += f"{base} {linea_amenaza(tono)}"
-
-        t += "\n\nHechos/antecedentes:\n"
-        t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
-
-        if pedido_concreto.strip():
-            t += "\n\nPedido concreto:\n"
-            t += pedido_concreto.strip()
-
-        if mencionar_pruebas:
-            t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
-        if abrir_acuerdo:
-            t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
-        if incluir_costas:
-            t += "\n\nTodo ello con más intereses, gastos y costas."
-        if incluir_reserva:
-            t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
-
-        t += "\n\nQueda Ud. debidamente notificado."
-        t += bloque_firma(firmante, matricula, estudio, contacto)
-
-        guardar_en_historial(
+    guardar_en_historial(
     tipo="Carta Documento",
     titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
     contenido=t
 )
-        st.text_area("Resultado", t, height=420)
-        exportar_word(t, "Carta_Documento_Estudio_Peire")
+    st.text_area("Resultado", t, height=420)
+    exportar_word(t, "Carta_Documento_Estudio_Peire")
 
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
@@ -595,13 +595,15 @@ elif menu == "Respuesta Carta Documento":
     texto_recibido = st.text_area(
         "Texto recibido (pegar)",
         value=datos_analisis.get("texto_recibido", ""),
-        height=120
+        height=120,
+        placeholder="Pegá acá el texto recibido o cargalo desde Análisis de Documento."
     )
 
     hechos_reales = st.text_area(
         "Hechos reales del cliente (lo que SÍ pasó)",
         value=datos_analisis.get("hechos_reales", ""),
-        height=120
+        height=120,
+        placeholder="Describí la versión real del cliente."
     )
 
     col4, col5, col6, col7 = st.columns(4)
@@ -616,7 +618,11 @@ elif menu == "Respuesta Carta Documento":
 
     propuesta = ""
     if postura in ["Aceptar parcialmente", "Proponer acuerdo"]:
-        propuesta = st.text_area("Propuesta (pago/plan/condiciones)", height=90)
+        propuesta = st.text_area(
+            "Propuesta (pago/plan/condiciones)",
+            height=90,
+            placeholder="Ej: Se propone plan de pago en 3 cuotas mensuales."
+        )
 
     if st.button("Generar Respuesta"):
         t = "RESPUESTA A CARTA DOCUMENTO\n\n"
@@ -751,12 +757,11 @@ elif menu == "Mailing (Modo Agente)":
     with col3:
         canal = st.selectbox("Canal", ["Email", "WhatsApp (texto corto)"])
 
-    cliente = st.text_input("Nombre del cliente")
-    caso = st.text_input("Caso/Asunto general (ej: alquiler, laboral, daños)")
-    estado = st.text_area("Estado actual / contexto (2–6 líneas)", height=100)
-    proximo_paso = st.text_area("Próximo paso (qué tiene que pasar ahora)", height=80)
-    accion_cliente = st.text_input("Acción requerida al cliente (si aplica)", value="")
-
+    cliente = st.text_input("Nombre del cliente", placeholder="Ej: María González")
+    caso = st.text_input("Caso/Asunto general (ej: alquiler, laboral, daños)", placeholder="Ej: Reclamo laboral")
+    estado = st.text_area("Estado actual / contexto (2–6 líneas)", height=100, placeholder="Describí el estado actual del caso.")
+    proximo_paso = st.text_area("Próximo paso (qué tiene que pasar ahora)", height=80, placeholder="Ej: aguardar respuesta / presentar documentación.")
+    accion_cliente = st.text_input("Acción requerida al cliente (si aplica)", value="", placeholder="Ej: enviar DNI y comprobantes")
     col4, col5 = st.columns(2)
     with col4:
         incluir_disclaimer = st.checkbox("Incluir disclaimer (confidencialidad)", value=True)
@@ -859,11 +864,14 @@ elif menu == "Presupuesto":
     modalidad = st.selectbox("Modalidad", ["Monto fijo", "Por etapas", "Success fee", "Mixto (fijo + success fee)"])
     honorarios = st.text_input("Honorarios / Monto / Porcentaje (según modalidad)")
 
-    alcance = st.text_area("Alcance (qué incluye)", height=110)
-    no_incluye = st.text_area("No incluye (limitaciones)", height=90)
-    plazos = st.text_area("Plazos estimados", height=80)
-    forma_pago = st.text_area("Forma de pago", height=80)
-
+    cliente = st.text_input("Cliente", placeholder="Ej: María González")
+    servicio = st.text_input("Servicio", placeholder="Ej: Sucesión / Carta documento / Reclamo")
+    honorarios = st.text_input("Honorarios / Monto / Porcentaje (según modalidad)", placeholder="Ej: $250.000 o 10%")
+    alcance = st.text_area("Alcance (qué incluye)", height=110, placeholder="Describí qué incluye el servicio.")
+    no_incluye = st.text_area("No incluye (limitaciones)", height=90, placeholder="Describí qué no está incluido.")
+    plazos = st.text_area("Plazos estimados", height=80, placeholder="Ej: entre 30 y 60 días.")
+    forma_pago = st.text_area("Forma de pago", height=80, placeholder="Ej: 50% al inicio y 50% contra entrega.")
+    observaciones = st.text_area("Observaciones (opcional)", height=70, placeholder="Aclaraciones adicionales.")
     col3, col4, col5 = st.columns(3)
     with col3:
         incluir_impuestos = st.checkbox("Aclarar impuestos/retenciones (si aplica)", value=True)
@@ -959,12 +967,11 @@ elif menu == "Análisis de Documento":
             st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
 
     st.subheader("Datos clave del documento")
-    remitente = st.text_input("Remitente")
-    destinatario = st.text_input("Destinatario")
-    fecha_doc = st.text_input("Fecha del documento")
-    monto = st.text_input("Monto (si aplica)")
-    objeto = st.text_input("Objeto / tema principal")
-
+    remitente = st.text_input("Remitente", placeholder="Ej: Juan Pérez")
+    destinatario = st.text_input("Destinatario", placeholder="Ej: Carlos Fernández")
+    fecha_doc = st.text_input("Fecha del documento", placeholder="Ej: 06/03/2026")
+    monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000")
+    objeto = st.text_input("Objeto / tema principal", placeholder="Ej: Reclamo por alquiler adeudado")
     resumen = st.text_area(
         "Resumen manual / puntos importantes",
         height=150,
