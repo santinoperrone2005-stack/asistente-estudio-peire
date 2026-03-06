@@ -43,14 +43,15 @@ def aplicar_estilo():
             font-weight: 700;
         }}
 
-        label, .stMarkdown p, .stMarkdown li, .stMarkdown span {
+        label, .stMarkdown p, .stMarkdown li, .stMarkdown span {{
             color: {TEXT};
-        }
-        pre, code, .stCode, [data-testid="stCodeBlock"], [data-testid="stCodeBlock"] * {
+        }}
+
+        pre, code, .stCode, [data-testid="stCodeBlock"], [data-testid="stCodeBlock"] * {{
             background-color: #f8fafc !important;
             color: #111827 !important;
             border-radius: 12px !important;
-        }
+        }}
 
         .bloque-header {{
             background: linear-gradient(90deg, #ffffff 0%, #f7fbfd 100%);
