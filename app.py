@@ -113,6 +113,10 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
         "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
     })
 
+def volver_al_dashboard():
+    st.session_state.menu_actual = "Dashboard"
+    st.rerun()
+
 # =============================
 # HEADER
 # =============================
@@ -134,7 +138,6 @@ opciones_menu = [
     "Análisis de Documento",
     "Historial",
     "Biblioteca Oficial de Prompts",
-    "Cómo usar y compartir",
 ]
 
 if "menu_actual" not in st.session_state:
@@ -215,6 +218,7 @@ if menu == "Dashboard":
 # 1) CARTA DOCUMENTO
 # =========================================================
 elif menu == "Carta Documento":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("📄 Carta Documento")
 
     col1, col2 = st.columns(2)
@@ -329,6 +333,7 @@ elif menu == "Carta Documento":
 # 2) RESPUESTA A CARTA DOCUMENTO
 # =========================================================
 elif menu == "Respuesta Carta Documento":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("✉️ Respuesta a Carta Documento")
 
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
@@ -440,6 +445,7 @@ elif menu == "Respuesta Carta Documento":
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
 elif menu == "Contestación de Oficio":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("📑 Contestación de Oficio")
 
     col1, col2 = st.columns(2)
@@ -506,6 +512,7 @@ elif menu == "Contestación de Oficio":
 # 4) MAILING MODO AGENTE
 # =========================================================
 elif menu == "Mailing (Modo Agente)":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("📧 Mailing (Modo Agente)")
 
     col1, col2, col3 = st.columns(3)
@@ -610,6 +617,7 @@ elif menu == "Mailing (Modo Agente)":
 # 5) PRESUPUESTO
 # =========================================================
 elif menu == "Presupuesto":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("💼 Presupuesto de Honorarios")
 
     col1, col2 = st.columns(2)
@@ -679,8 +687,9 @@ elif menu == "Presupuesto":
 # 6) ANÁLISIS DE DOCUMENTO
 # =========================================================
 elif menu == "Análisis de Documento":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("📂 Análisis de Documento")
-
+    
     st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
 
     uploaded_file = st.file_uploader(
@@ -820,8 +829,9 @@ Observaciones:
 # 7) HISTORIAL
 # =========================================================
 elif menu == "Historial":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("🕘 Historial de Documentos")
-
+    
     historial = st.session_state.get("historial_documentos", [])
 
     if not historial:
@@ -848,9 +858,9 @@ elif menu == "Historial":
 # 8) BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
 elif menu == "Biblioteca Oficial de Prompts":
+    st.button("⬅ Volver al Dashboard", on_click=volver_al_dashboard)
     st.header("📚 Biblioteca Oficial de Prompts – Estudio Peire")
-    st.caption("Para usar cuando activen IA real (Chat/API). Esto estandariza el estilo del equipo.")
-
+    
     st.subheader("Prompt maestro (pegar al inicio)")
     st.code(
 """Sos asistente del Estudio Peire. Objetivo: redactar BORRADORES y ordenar información.
@@ -931,38 +941,4 @@ Plazos:
 Forma de pago:
 Validez:
 Entregá presupuesto listo + variables que cambian costo + texto breve para WhatsApp."""
-    )
-
-# =========================================================
-# 8) CÓMO USAR Y COMPARTIR
-# =========================================================
-else:
-    st.header("⚙️ Cómo usar y compartir con el estudio (hoy mismo)")
-
-    st.markdown(
-"""
-### Opción rápida (demo en la oficina)
-1) Copiá la carpeta `asistente-estudio` a otra PC (pendrive/drive).
-2) En esa PC instalan Python (si no está).
-3) En PowerShell, dentro de la carpeta, ejecutan:
-   - `python -m venv .venv`
-   - `.\.venv\Scripts\Activate.ps1`
-   - `pip install streamlit python-docx`
-   - `streamlit run app.py`
-
-### Opción “que lo use cualquiera en la red”
-En una PC que haga de “servidor”:
-- `streamlit run app.py --server.address 0.0.0.0 --server.port 8501`
-
-Luego, en otras PCs del estudio:
-- Abrir navegador y entrar a `http://IP_DE_LA_PC:8501`
-
-> Windows Firewall puede pedir permiso: aceptar en red privada.
-
-### Más adelante (IA real)
-Cuando activen IA real, esto se mejora:
-- Mejor redacción automática
-- Resumen de PDFs
-- Chat sobre documentos del estudio (RAG)
-"""
     )
