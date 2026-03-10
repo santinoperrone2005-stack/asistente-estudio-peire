@@ -3,6 +3,8 @@ from docx import Document
 from io import BytesIO
 from datetime import date, datetime
 from pypdf import PdfReader
+import os
+from openai import OpenAI
 
 # =============================
 # CONFIG INICIAL
@@ -312,6 +314,29 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
         "contenido": contenido,
         "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
     })
+
+def obtener_cliente_openai():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key)
+
+def generar_texto_con_ia(prompt_sistema: str, prompt_usuario: str):
+    cliente = obtener_cliente_openai()
+    if not cliente:
+        return None
+
+    try:
+        respuesta = cliente.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {"role": "system", "content": prompt_sistema},
+                {"role": "user", "content": prompt_usuario},
+            ],
+        )
+        return respuesta.output_text
+    except Exception as e:
+        return f"ERROR_IA: {str(e)}"
 
 # =============================
 # HEADER
@@ -675,6 +700,8 @@ elif menu == "Respuesta Carta Documento":
     with col7:
         intimar_cese = st.checkbox("Intimar rectificación / cese de reclamo", value=False)
 
+    usar_ia = st.checkbox("Usar IA para mejorar la redacción", value=True)
+    
     propuesta = ""
     if postura in ["Aceptar parcialmente", "Proponer acuerdo"]:
         propuesta = st.text_area(
@@ -684,56 +711,111 @@ elif menu == "Respuesta Carta Documento":
         )
 
     if st.button("Generar Respuesta"):
-        t = "RESPUESTA A CARTA DOCUMENTO\n\n"
-        t += "En relación a su comunicación, mediante la cual manifiesta:\n\n"
-        t += safe(texto_recibido, "[Pegar texto recibido]") + "\n\n"
+        if usar_ia:
+            prompt_sistema = (
+                "Sos asistente jurídico del Estudio Peire. "
+                "Redactás borradores claros, profesionales y prudentes en español jurídico argentino. "
+                "No inventes normas, jurisprudencia ni hechos. "
+                "No cites artículos si no fueron dados por el usuario. "
+                "Redactá un texto listo para revisar por un abogado."
+            )
 
-        if postura == "Negar deuda/hechos":
-            if tono == "Neutral":
-                t += "Se rechazan los hechos y manifestaciones allí vertidas por no ajustarse a la realidad.\n"
-            elif tono == "Firme":
-                t += "Se rechazan los hechos y el derecho invocados por improcedentes y carentes de sustento.\n"
-            else:
-                t += "Se niegan categóricamente los hechos y el derecho invocados por resultar falsos, improcedentes y carentes de respaldo.\n"
-        elif postura == "Aceptar parcialmente":
-            t += "Se efectúan las siguientes aclaraciones, aceptándose únicamente lo que se indica en forma expresa y rechazándose todo lo demás.\n"
-        elif postura == "Proponer acuerdo":
-            t += "Sin reconocer hechos ni derecho y a fin de evitar mayores costos y litigiosidad, se propone la siguiente vía de solución.\n"
+            prompt_usuario = f"""
+Redactá una RESPUESTA A CARTA DOCUMENTO en español jurídico argentino.
+
+Postura: {postura}
+Tono: {tono}
+Plazo de intimación si corresponde: {plazo_intimacion}
+
+Texto recibido:
+{texto_recibido}
+
+Hechos reales del cliente:
+{hechos_reales}
+
+Mencionar pruebas/documentación: {mencionar_pruebas}
+Reserva de acciones y derechos: {incluir_reserva}
+Apercibimiento de gastos y costas: {incluir_costas}
+Intimar rectificación / cese de reclamo: {intimar_cese}
+
+Propuesta:
+{propuesta if propuesta else "No hay propuesta."}
+
+Firmante: {firmante}
+Matrícula: {matricula}
+Estudio: {estudio}
+Contacto: {contacto}
+
+Devolvé solo el texto final del documento, sin explicaciones adicionales.
+"""
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
+
+            if incluir_reserva and "reserva" not in t.lower():
+                t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+            if incluir_costas and "gastos y costas" not in t.lower():
+                t += "\n\nTodo ello con más gastos y costas."
+
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
         else:
-            if tono == "Muy firme":
-                t += "Se rechazan de plano sus manifestaciones y se lo intima a cesar con reclamos infundados.\n"
+            t = "RESPUESTA A CARTA DOCUMENTO\n\n"
+            t += "En relación a su comunicación, mediante la cual manifiesta:\n\n"
+            t += safe(texto_recibido, "[Pegar texto recibido]") + "\n\n"
+
+            if postura == "Negar deuda/hechos":
+                if tono == "Neutral":
+                    t += "Se rechazan los hechos y manifestaciones allí vertidas por no ajustarse a la realidad.\n"
+                elif tono == "Firme":
+                    t += "Se rechazan los hechos y el derecho invocados por improcedentes y carentes de sustento.\n"
+                else:
+                    t += "Se niegan categóricamente los hechos y el derecho invocados por resultar falsos, improcedentes y carentes de respaldo.\n"
+            elif postura == "Aceptar parcialmente":
+                t += "Se efectúan las siguientes aclaraciones, aceptándose únicamente lo que se indica en forma expresa y rechazándose todo lo demás.\n"
+            elif postura == "Proponer acuerdo":
+                t += "Sin reconocer hechos ni derecho y a fin de evitar mayores costos y litigiosidad, se propone la siguiente vía de solución.\n"
             else:
-                t += "Se rechazan sus manifestaciones y se lo intima a adecuar su conducta conforme derecho.\n"
+                if tono == "Muy firme":
+                    t += "Se rechazan de plano sus manifestaciones y se lo intima a cesar con reclamos infundados.\n"
+                else:
+                    t += "Se rechazan sus manifestaciones y se lo intima a adecuar su conducta conforme derecho.\n"
 
-        t += "\nHechos reales / posición de mi representado:\n"
-        t += safe(hechos_reales, "[Describir hechos reales]") + "\n"
+            t += "\nHechos reales / posición de mi representado:\n"
+            t += safe(hechos_reales, "[Describir hechos reales]") + "\n"
 
-        if mencionar_pruebas:
-            t += "\nSe deja constancia que se cuenta con documentación y/o elementos probatorios respaldatorios, los cuales serán oportunamente acompañados de corresponder.\n"
+            if mencionar_pruebas:
+                t += "\nSe deja constancia que se cuenta con documentación y/o elementos probatorios respaldatorios, los cuales serán oportunamente acompañados de corresponder.\n"
 
-        if propuesta.strip():
-            t += "\nPropuesta:\n" + propuesta.strip() + "\n"
+            if propuesta.strip():
+                t += "\nPropuesta:\n" + propuesta.strip() + "\n"
 
-        if intimar_cese:
-            t += f"\nINTIMO a Ud. a rectificar y/o cesar el reclamo improcedente en el plazo de {plazo_intimacion}, bajo apercibimiento de iniciar las acciones pertinentes.\n"
+            if intimar_cese:
+                t += f"\nINTIMO a Ud. a rectificar y/o cesar el reclamo improcedente en el plazo de {plazo_intimacion}, bajo apercibimiento de iniciar las acciones pertinentes.\n"
 
-        if incluir_costas:
-            t += "\nTodo ello con más gastos y costas.\n"
-        if incluir_reserva:
-            t += "\nSe reserva expresamente el ejercicio de acciones y derechos.\n"
+            if incluir_costas:
+                t += "\nTodo ello con más gastos y costas.\n"
+            if incluir_reserva:
+                t += "\nSe reserva expresamente el ejercicio de acciones y derechos.\n"
 
-        t += "\nQueda Ud. debidamente notificado.\n"
-        t += bloque_firma(firmante, matricula, estudio, contacto)
+            t += "\nQueda Ud. debidamente notificado.\n"
+            t += bloque_firma(firmante, matricula, estudio, contacto)
 
         guardar_en_historial(
-    tipo="Respuesta Carta Documento",
-    titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
-    contenido=t
-)
-        
+            tipo="Respuesta Carta Documento",
+            titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
+            contenido=t
+        )
+
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Respuesta_Carta_Documento_Estudio_Peire")
-
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
