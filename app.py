@@ -19,7 +19,7 @@ PRIMARY_DARK = "#0F7EA0"
 BG = "#F5F6F7"
 CARD = "#FFFFFF"
 TEXT = "#1F2937"
-MUTED = "#6B7280"
+MUTED = "#4B5563"
 BORDER = "#D6E2E8"
 
 def aplicar_estilo():
@@ -171,7 +171,36 @@ def aplicar_estilo():
             color: {TEXT} !important;
         }}
 
-        .stCheckbox label {{
+        .stCheckbox label,
+        .stRadio label,
+        .stSelectbox label,
+        .stTextInput label,
+        .stTextArea label,
+        .stDateInput label,
+        .stTimeInput label,
+        .stNumberInput label,
+        .stFileUploader label,
+        .stMultiSelect label,
+        .stToggle label,
+        .stMarkdown p,
+        .stMarkdown li,
+        .stMarkdown span,
+        .stCaption,
+        small {{
+            color: {TEXT} !important;
+            opacity: 1 !important;
+        }}
+
+        [data-testid="stCheckbox"] label,
+        [data-testid="stRadio"] label,
+        [data-testid="stWidgetLabel"] {{
+            color: {TEXT} !important;
+            opacity: 1 !important;
+            font-weight: 500;
+        }}
+
+        [data-testid="stCheckbox"] div,
+        [data-testid="stRadio"] div {{
             color: {TEXT} !important;
         }}
 
