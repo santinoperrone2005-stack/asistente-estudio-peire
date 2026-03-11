@@ -367,6 +367,41 @@ def generar_texto_con_ia(prompt_sistema: str, prompt_usuario: str):
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
+def editar_texto_con_ia(texto_original: str, instruccion_usuario: str):
+    cliente = obtener_cliente_openai()
+    if not cliente:
+        return None
+
+    try:
+        respuesta = cliente.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Sos asistente jurídico del Estudio Peire. "
+                        "Tu tarea es editar y reescribir documentos jurídicos en español jurídico argentino. "
+                        "No inventes hechos, normas ni jurisprudencia. "
+                        "Respetá el contenido base y aplicá solo los cambios pedidos por el usuario. "
+                        "Devolvé únicamente la nueva versión del texto completo."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Texto original:
+{texto_original}
+
+Instrucción del usuario:
+{instruccion_usuario}
+""",
+                },
+            ],
+        )
+        return respuesta.output_text
+    except Exception as e:
+        return f"ERROR_IA: {str(e)}"
+
 # =============================
 # HEADER
 # =============================
@@ -865,15 +900,77 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             t += "\nQueda Ud. debidamente notificado.\n"
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        st.session_state["ultimo_texto_respuesta_cd"] = t
+
+    if "ultimo_texto_respuesta_cd" in st.session_state:
+        st.markdown("### Resultado")
+        texto_actual = st.session_state["ultimo_texto_respuesta_cd"]
+
+        texto_actual = st.text_area(
+            "Texto generado / editable",
+            value=texto_actual,
+            height=420,
+            key="texto_resultado_respuesta_cd"
+        )
+
+        st.session_state["ultimo_texto_respuesta_cd"] = texto_actual
+
+        st.markdown("### Editar con IA")
+        st.caption("Podés pedir cualquier cambio libremente. Ej: 'hacelo más firme', 'agregá un párrafo final', 'más corto', 'más formal', 'sacá la parte del acuerdo'.")
+
+        col_edit1, col_edit2, col_edit3 = st.columns(3)
+
+        with col_edit1:
+            if st.button("Más firme"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más firme, manteniendo tono profesional y jurídico."
+
+        with col_edit2:
+            if st.button("Más breve"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más breve y directo, sin perder contenido jurídico importante."
+
+        with col_edit3:
+            if st.button("Más formal"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más formal y técnico, manteniendo claridad."
+
+        instruccion_edicion = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_cd", ""),
+            placeholder="Ej: agregá reserva de daños, sacá la propuesta de acuerdo, hacelo más técnico."
+        )
+
+        if st.button("Aplicar cambios con IA"):
+            if not instruccion_edicion.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado = editar_texto_con_ia(texto_actual, instruccion_edicion)
+
+                if not texto_editado:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado).startswith("ERROR_IA:"):
+                    st.error(texto_editado)
+                else:
+                    st.session_state["ultimo_texto_respuesta_cd"] = texto_editado
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Respuesta Carta Documento",
+                        titulo=f"Edición IA - {datos_analisis.get('remitente', 'Sin remitente')}",
+                        contenido=texto_editado
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_texto_respuesta_cd"],
+            "Respuesta_Carta_Documento_Estudio_Peire"
+        )
+
         guardar_en_historial(
             tipo="Respuesta Carta Documento",
             titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
             contenido=t
         )
 
-        st.text_area("Resultado", t, height=420)
-        exportar_word(t, "Respuesta_Carta_Documento_Estudio_Peire")
-        
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
