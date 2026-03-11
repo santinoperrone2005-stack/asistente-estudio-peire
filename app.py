@@ -636,7 +636,6 @@ if menu == "Dashboard":
 # DIAGNÓSTICO INTELIGENTE
 # =========================================================
 elif menu == "Diagnóstico Inteligente":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("🧠 Diagnóstico Inteligente de Documento")
 
     col_a, col_b = st.columns([1, 1])
@@ -763,7 +762,6 @@ elif menu == "Diagnóstico Inteligente":
 # 1) CARTA DOCUMENTO
 # =========================================================
 elif menu == "Carta Documento":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📄 Carta Documento")
 
     col_a, col_b = st.columns([1, 1])
@@ -1025,7 +1023,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 # 2) RESPUESTA A CARTA DOCUMENTO
 # =========================================================
 elif menu == "Respuesta Carta Documento":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("✉️ Respuesta a Carta Documento")
 
     col_a, col_b = st.columns([1, 1])
@@ -1301,7 +1298,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
 elif menu == "Contestación de Oficio":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📑 Contestación de Oficio")
 
     col_a, col_b = st.columns([1, 1])
@@ -1474,7 +1470,6 @@ Devolvé solo el texto final del documento.
 # 4) MAILING MODO AGENTE
 # =========================================================
 elif menu == "Mailing (Modo Agente)":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📧 Mailing (Modo Agente)")
 
     col_a, col_b = st.columns([1, 1])
@@ -1671,7 +1666,6 @@ Devolvé solo el texto final del mensaje.
 # 5) PRESUPUESTO
 # =========================================================
 elif menu == "Presupuesto":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("💼 Presupuesto de Honorarios")
 
     col_a, col_b = st.columns([1, 1])
@@ -1858,7 +1852,6 @@ Devolvé solo el texto final del presupuesto.
 # 6) ANÁLISIS DE DOCUMENTO
 # =========================================================
 elif menu == "Análisis de Documento":
-    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📂 Análisis de Documento")
     
     col_a, col_b = st.columns([1, 1])
