@@ -693,8 +693,7 @@ elif menu == "Respuesta Carta Documento":
             st.text_input("Objeto detectado", value=datos_analisis.get("objeto", ""), disabled=True)
 
         if st.button("Limpiar datos cargados del análisis"):
-            if "analisis_para_respuesta" in st.session_state:
-                del st.session_state["analisis_para_respuesta"]
+            del st.session_state["analisis_para_respuesta"]
             st.rerun()
 
     col1, col2, col3 = st.columns(3)
@@ -705,11 +704,40 @@ elif menu == "Respuesta Carta Documento":
     with col3:
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
 
+    archivo_respuesta = st.file_uploader(
+        "Subir documento recibido (opcional)",
+        type=["pdf", "docx", "txt"],
+        key="archivo_respuesta_cd"
+    )
+
+    texto_archivo_respuesta = ""
+    if archivo_respuesta is not None:
+        texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
+
+        if texto_archivo_respuesta.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(texto_archivo_respuesta)
+            texto_archivo_respuesta = ""
+        elif texto_archivo_respuesta.strip():
+            st.success(f"Archivo cargado: {archivo_respuesta.name}")
+            st.text_area(
+                "Texto detectado del archivo",
+                value=texto_archivo_respuesta,
+                height=180
+            )
+        else:
+            st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
+
+    texto_base_respuesta = ""
+    if texto_archivo_respuesta.strip():
+        texto_base_respuesta = texto_archivo_respuesta
+    else:
+        texto_base_respuesta = datos_analisis.get("texto_recibido", "")
+
     texto_recibido = st.text_area(
-        "Texto recibido (pegar)",
-        value=datos_analisis.get("texto_recibido", ""),
-        height=120,
-        placeholder="Pegá acá el texto recibido o cargalo desde Análisis de Documento."
+        "Texto recibido (pegar o editar)",
+        value=texto_base_respuesta,
+        height=160,
+        placeholder="Pegá acá el texto recibido o cargá un archivo arriba."
     )
 
     hechos_reales = st.text_area(
@@ -730,7 +758,7 @@ elif menu == "Respuesta Carta Documento":
         intimar_cese = st.checkbox("Intimar rectificación / cese de reclamo", value=False)
 
     usar_ia = st.checkbox("Usar IA para mejorar la redacción", value=True)
-    
+
     propuesta = ""
     if postura in ["Aceptar parcialmente", "Proponer acuerdo"]:
         propuesta = st.text_area(
@@ -845,6 +873,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 
         st.text_area("Resultado", t, height=420)
         exportar_word(t, "Respuesta_Carta_Documento_Estudio_Peire")
+        
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
