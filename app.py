@@ -449,6 +449,10 @@ Instrucción del usuario:
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
+def limpiar_resultado(clave: str):
+    if clave in st.session_state:
+        del st.session_state[clave]
+
 # =============================
 # HEADER
 # =============================
@@ -635,6 +639,14 @@ elif menu == "Diagnóstico Inteligente":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("🧠 Diagnóstico Inteligente de Documento")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nuevo diagnóstico", key="reset_diagnostico"):
+            limpiar_resultado("ultimo_diagnostico")
+            st.rerun()
+    
     st.write("Subí un documento y la IA va a detectar automáticamente qué es, de qué trata y cuál sería el próximo paso recomendado dentro del sistema.")
 
     archivo_diag = st.file_uploader(
@@ -668,6 +680,8 @@ elif menu == "Diagnóstico Inteligente":
             st.warning("No se pudo extraer texto del archivo o está vacío.")
 
     if st.button("Generar diagnóstico con IA"):
+        
+        limpiar_resultado("ultimo_diagnostico")
         if not texto_diagnostico.strip():
             st.warning("Primero subí un archivo válido para diagnosticar.")
         else:
@@ -752,6 +766,14 @@ elif menu == "Carta Documento":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📄 Carta Documento")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nuevo documento", key="reset_carta"):
+            limpiar_resultado("ultimo_texto_carta_documento")
+            st.rerun()
+    
     col1, col2 = st.columns(2)
     with col1:
         remitente = st.text_input("Remitente / Cliente", placeholder="Ej: Carlos Raúl Fernández")
@@ -819,6 +841,7 @@ elif menu == "Carta Documento":
 
     if st.button("Generar Carta Documento"):
     
+        limpiar_resultado("ultimo_texto_carta_documento")
         if usar_ia:
             prompt_sistema = (
                 "Sos asistente jurídico del Estudio Peire. "
@@ -1005,6 +1028,14 @@ elif menu == "Respuesta Carta Documento":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("✉️ Respuesta a Carta Documento")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nueva respuesta", key="reset_respuesta_cd"):
+            limpiar_resultado("ultimo_texto_respuesta_cd")
+            st.rerun()
+    
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
 
     if datos_analisis:
@@ -1096,6 +1127,8 @@ elif menu == "Respuesta Carta Documento":
         )
 
     if st.button("Generar Respuesta"):
+        
+        limpiar_resultado("ultimo_texto_respuesta_cd")    
         if usar_ia:
             prompt_sistema = (
                 "Sos asistente jurídico del Estudio Peire. "
@@ -1271,6 +1304,14 @@ elif menu == "Contestación de Oficio":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📑 Contestación de Oficio")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nueva contestación", key="reset_oficio"):
+            limpiar_resultado("ultimo_oficio")
+            st.rerun()
+    
     col1, col2 = st.columns(2)
     with col1:
         organismo = st.text_input("Organismo / Juzgado")
@@ -1295,6 +1336,8 @@ elif menu == "Contestación de Oficio":
     
     if st.button("Generar Contestación"):
 
+        limpiar_resultado("ultimo_oficio")
+        
         if usar_ia_oficio:
             prompt_sistema = (
                 "Sos asistente jurídico del Estudio Peire. "
@@ -1434,6 +1477,14 @@ elif menu == "Mailing (Modo Agente)":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📧 Mailing (Modo Agente)")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nuevo mailing", key="reset_mail"):
+            limpiar_resultado("ultimo_mail")
+            st.rerun()
+    
     col1, col2, col3 = st.columns(3)
     with col1:
         tipo_mail = st.selectbox("Tipo de mensaje", ["Actualización de caso", "Pedido de documentación", "Seguimiento", "Cierre / próximos pasos", "Recordatorio"])
@@ -1457,6 +1508,8 @@ elif menu == "Mailing (Modo Agente)":
     
     if st.button("Generar Mailing"):
 
+        limpiar_resultado("ultimo_mail")
+        
         if usar_ia_mail:
             prompt_sistema = (
                 "Sos asistente del Estudio Peire. "
@@ -1621,6 +1674,14 @@ elif menu == "Presupuesto":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("💼 Presupuesto de Honorarios")
 
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nuevo presupuesto", key="reset_presupuesto"):
+            limpiar_resultado("ultimo_presupuesto")
+            st.rerun()
+    
     col1, col2 = st.columns(2)
     with col1:
         cliente = st.text_input("Cliente")
@@ -1654,6 +1715,8 @@ elif menu == "Presupuesto":
     
     if st.button("Generar Presupuesto"):
 
+        limpiar_resultado("ultimo_presupuesto")
+        
         if usar_ia_presupuesto:
             prompt_sistema = (
                 "Sos asistente del Estudio Peire. "
@@ -1797,6 +1860,14 @@ Devolvé solo el texto final del presupuesto.
 elif menu == "Análisis de Documento":
     st.button("← Volver al panel principal", on_click=volver_al_dashboard)
     st.header("📂 Análisis de Documento")
+    
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    with col_b:
+        if st.button("Nuevo análisis", key="reset_analisis"):
+            limpiar_resultado("ultimo_analisis_documento")
+            st.rerun()
     
     st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
 
