@@ -641,6 +641,8 @@ elif menu == "Carta Documento":
     with col11:
         abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo", value=False)
 
+    usar_ia = st.checkbox("Usar IA para redactar la carta", value=True)
+    
     texto_personalizado = ""
     if tipo == "Otra (personalizada)":
         texto_personalizado = st.text_area(
@@ -650,51 +652,118 @@ elif menu == "Carta Documento":
         )
 
     if st.button("Generar Carta Documento"):
-        t = "CARTA DOCUMENTO\n"
-        t += f"Lugar/Jurisdicción: {safe(jurisd,'[Lugar]')}\n"
-        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
-        if referencia.strip():
-            t += f"Referencia: {referencia.strip()}\n"
-        t += "\n"
-        t += f"Remitente: {safe(remitente,'[Remitente]')}\n"
-        t += f"Domicilio: {safe(dom_remitente,'[Domicilio remitente]')}\n"
-        t += f"Destinatario: {safe(destinatario,'[Destinatario]')}\n"
-        t += f"Domicilio: {safe(dom_destinatario,'[Domicilio destinatario]')}\n"
+    
+        if usar_ia:
+            prompt_sistema = (
+                "Sos asistente jurídico del Estudio Peire. "
+                "Redactás CARTAS DOCUMENTO en español jurídico argentino, con tono profesional y prudente. "
+                "No inventes hechos, normas ni jurisprudencia. "
+                "No cites artículos si no fueron dados por el usuario. "
+                "Devolvé directamente el texto final del documento listo para revisar por un abogado."
+            )
 
-        t += "\n\nPor la presente, "
+            prompt_usuario = f"""
+Redactá una CARTA DOCUMENTO en español jurídico argentino.
 
-        if tipo == "Intimación de pago (deuda)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto,'[Monto]')} en concepto de deuda, {linea_amenaza(tono)}"
-        elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza(tono)}"
-        elif tipo == "Rescisión / Resolución contractual":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza(tono)}"
-        elif tipo == "Cese de conducta / daños":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza(tono)}"
-        elif tipo == "Laboral (intimación / regularización)":
-            t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza(tono)}"
+Tipo: {tipo}
+Tono: {tono}
+Lugar/Jurisdicción: {jurisd}
+Fecha: {fecha}
+Plazo intimado: {plazo}
+
+Remitente: {remitente}
+Domicilio remitente: {dom_remitente}
+
+Destinatario: {destinatario}
+Domicilio destinatario: {dom_destinatario}
+
+Monto: {monto}
+Referencia/Contrato/Expte: {referencia}
+
+Hechos / antecedentes:
+{hechos}
+
+Pedido concreto:
+{pedido_concreto}
+
+Mencionar documentación/pruebas: {mencionar_pruebas}
+Reserva de acciones y derechos: {incluir_reserva}
+Apercibimiento de gastos y costas: {incluir_costas}
+Abrir posibilidad de acuerdo: {abrir_acuerdo}
+
+Firmante: {firmante}
+Matrícula: {matricula}
+Estudio: {estudio}
+Contacto: {contacto}
+
+Devolvé solo el texto final del documento, sin explicaciones adicionales.
+"""
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
+
+            if incluir_reserva and "reserva" not in t.lower():
+                t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+            if incluir_costas and "gastos y costas" not in t.lower():
+                t += "\n\nTodo ello con más intereses, gastos y costas."
+
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
         else:
-            base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
-            t += f"{base} {linea_amenaza(tono)}"
+            t = "CARTA DOCUMENTO\n"
+            t += f"Lugar/Jurisdicción: {safe(jurisd,'[Lugar]')}\n"
+            t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
+            if referencia.strip():
+                t += f"Referencia: {referencia.strip()}\n"
+            t += "\n"
+            t += f"Remitente: {safe(remitente,'[Remitente]')}\n"
+            t += f"Domicilio: {safe(dom_remitente,'[Domicilio remitente]')}\n"
+            t += f"Destinatario: {safe(destinatario,'[Destinatario]')}\n"
+            t += f"Domicilio: {safe(dom_destinatario,'[Domicilio destinatario]')}\n"
 
-        t += "\n\nHechos/antecedentes:\n"
-        t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
+            t += "\n\nPor la presente, "
 
-        if pedido_concreto.strip():
-            t += "\n\nPedido concreto:\n"
-            t += pedido_concreto.strip()
+            if tipo == "Intimación de pago (deuda)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto,'[Monto]')} en concepto de deuda, {linea_amenaza(tono)}"
+            elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza(tono)}"
+            elif tipo == "Rescisión / Resolución contractual":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza(tono)}"
+            elif tipo == "Cese de conducta / daños":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza(tono)}"
+            elif tipo == "Laboral (intimación / regularización)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza(tono)}"
+            else:
+                base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
+                t += f"{base} {linea_amenaza(tono)}"
 
-        if mencionar_pruebas:
-            t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
-        if abrir_acuerdo:
-            t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
-        if incluir_costas:
-            t += "\n\nTodo ello con más intereses, gastos y costas."
-        if incluir_reserva:
-            t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+            t += "\n\nHechos/antecedentes:\n"
+            t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
 
-        t += "\n\nQueda Ud. debidamente notificado."
-        t += bloque_firma(firmante, matricula, estudio, contacto)
+            if pedido_concreto.strip():
+                t += "\n\nPedido concreto:\n"
+                t += pedido_concreto.strip()
+
+            if mencionar_pruebas:
+                t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
+            if abrir_acuerdo:
+                t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
+            if incluir_costas:
+                t += "\n\nTodo ello con más intereses, gastos y costas."
+            if incluir_reserva:
+                t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+            t += "\n\nQueda Ud. debidamente notificado."
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.session_state["ultimo_texto_carta_documento"] = t
 
         guardar_en_historial(
             tipo="Carta Documento",
@@ -702,8 +771,66 @@ elif menu == "Carta Documento":
             contenido=t
         )
 
-        st.text_area("Resultado", t, height=420)
-        exportar_word(t, "Carta_Documento_Estudio_Peire")
+    if "ultimo_texto_carta_documento" in st.session_state:
+        st.markdown("### Resultado")
+        texto_actual_cd = st.text_area(
+            "Texto generado / editable",
+            value=st.session_state["ultimo_texto_carta_documento"],
+            height=420,
+            key="texto_resultado_carta_documento"
+        )
+
+        st.session_state["ultimo_texto_carta_documento"] = texto_actual_cd
+
+        st.markdown("### Editar con IA")
+        st.caption("Podés pedir cualquier cambio libremente. Ej: 'hacelo más firme', 'más corto', 'agregá reserva de daños', 'más formal'.")
+
+        col_edit1, col_edit2, col_edit3 = st.columns(3)
+
+        with col_edit1:
+            if st.button("Más firme", key="edit_cd_firme"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más firme, manteniendo tono profesional y jurídico."
+
+        with col_edit2:
+            if st.button("Más breve", key="edit_cd_breve"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más breve y directo, sin perder contenido jurídico importante."
+
+        with col_edit3:
+            if st.button("Más formal", key="edit_cd_formal"):
+                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más formal y técnico, manteniendo claridad."
+
+        instruccion_edicion_cd = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_cd", ""),
+            placeholder="Ej: agregá un párrafo final, hacelo menos agresivo, más técnico."
+        )
+
+        if st.button("Aplicar cambios con IA", key="aplicar_edicion_cd"):
+            if not instruccion_edicion_cd.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado_cd = editar_texto_con_ia(texto_actual_cd, instruccion_edicion_cd)
+
+                if not texto_editado_cd:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_cd).startswith("ERROR_IA:"):
+                    st.error(texto_editado_cd)
+                else:
+                    st.session_state["ultimo_texto_carta_documento"] = texto_editado_cd
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Carta Documento",
+                        titulo=f"Edición IA - {destinatario or 'Sin destinatario'}",
+                        contenido=texto_editado_cd
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_texto_carta_documento"],
+            "Carta_Documento_Estudio_Peire"
+        )
 
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
@@ -1274,13 +1401,107 @@ elif menu == "Análisis de Documento":
         placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc."
     )
 
+    usar_ia_analisis = st.checkbox("Usar IA para analizar el documento", value=True)   
+    
     col1, col2 = st.columns(2)
 
+    if "ultimo_analisis_documento" in st.session_state:
+        st.markdown("### Resultado del análisis")
+        texto_actual_analisis = st.text_area(
+            "Análisis generado / editable",
+            value=st.session_state["ultimo_analisis_documento"],
+            height=420,
+            key="texto_resultado_analisis"
+        )
+
+        st.session_state["ultimo_analisis_documento"] = texto_actual_analisis
+
+        st.markdown("### Editar análisis con IA")
+        instruccion_edicion_analisis = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_analisis", ""),
+            placeholder="Ej: resumilo más, agregá riesgos, proponé una estrategia más concreta."
+        )
+
+        if st.button("Aplicar cambios al análisis con IA"):
+            if not instruccion_edicion_analisis.strip():
+                st.warning("Escribí una instrucción para editar el análisis.")
+            else:
+                texto_editado_analisis = editar_texto_con_ia(
+                    texto_actual_analisis,
+                    instruccion_edicion_analisis
+                )
+
+                if not texto_editado_analisis:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_analisis).startswith("ERROR_IA:"):
+                    st.error(texto_editado_analisis)
+                else:
+                    st.session_state["ultimo_analisis_documento"] = texto_editado_analisis
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Análisis de Documento",
+                        titulo=f"Edición IA - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
+                        contenido=texto_editado_analisis
+                    )
+
+                    st.success("Análisis actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_analisis_documento"],
+            "Analisis_Documento_Estudio_Peire"
+        )
+    
     with col1:
         if st.button("Preparar borrador de respuesta"):
             texto_base = contenido_extraido if contenido_extraido else resumen
 
-            borrador = f"""
+            if usar_ia_analisis and texto_base.strip():
+                prompt_sistema = (
+                    "Sos asistente jurídico del Estudio Peire. "
+                    "Analizás documentos jurídicos en español argentino. "
+                    "No inventes hechos ni normas. "
+                    "Ordenás la información con claridad profesional."
+                )
+
+                prompt_usuario = f"""
+Analizá el siguiente documento y prepará un borrador interno para el estudio.
+
+Tipo de documento: {tipo_documento}
+Remitente: {remitente}
+Destinatario: {destinatario}
+Fecha: {fecha_doc}
+Monto: {monto}
+Objeto: {objeto}
+
+Observaciones del estudio:
+{observaciones}
+
+Resumen manual:
+{resumen}
+
+Texto del documento:
+{texto_base}
+
+Devolvé:
+1. Resumen ejecutivo
+2. Puntos clave
+3. Riesgos o alertas
+4. Estrategia sugerida
+5. Próximo paso recomendado
+"""
+                borrador = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+                if not borrador:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                    st.stop()
+
+                if str(borrador).startswith("ERROR_IA:"):
+                    st.error(borrador)
+                    st.stop()
+            else:
+                borrador = f"""
 ANÁLISIS DEL DOCUMENTO
 
 Tipo de documento: {tipo_documento}
@@ -1303,6 +1524,7 @@ Texto extraído del archivo:
 SUGERENCIA DE PRÓXIMO PASO:
 Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
 """
+
             st.session_state["analisis_para_respuesta"] = {
                 "texto_recibido": texto_base,
                 "hechos_reales": observaciones,
@@ -1315,47 +1537,13 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
                 "resumen": resumen,
             }
 
+            st.session_state["ultimo_analisis_documento"] = borrador
+
             guardar_en_historial(
-    tipo="Análisis de Documento",
-    titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
-    contenido=borrador
-)
-            
-            st.success("Análisis guardado. Ahora podés ir a 'Respuesta Carta Documento' y usar estos datos.")
-            st.text_area("Borrador base", borrador, height=350)
-            exportar_word(borrador, "Analisis_Documento_Estudio_Peire")
-
-    with col2:
-        if st.button("Extraer ficha del documento"):
-            ficha = f"""
-FICHA DEL DOCUMENTO
-
-Tipo: {tipo_documento}
-Archivo: {uploaded_file.name if uploaded_file else "[Sin archivo]"}
-Remitente: {remitente or "[No informado]"}
-Destinatario: {destinatario or "[No informado]"}
-Fecha: {fecha_doc or "[No informada]"}
-Monto: {monto or "[No informado]"}
-Objeto: {objeto or "[No informado]"}
-
-Resumen:
-{resumen or "[Sin resumen]"}
-
-Texto extraído:
-{contenido_extraido or "[Sin texto extraído]"}
-
-Observaciones:
-{observaciones or "[Sin observaciones]"}
-"""
-            guardar_en_historial(
-    tipo="Ficha de Documento",
-    titulo=f"Ficha - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
-    contenido=ficha
-)
-            
-            st.text_area("Ficha del documento", ficha, height=350)
-            exportar_word(ficha, "Ficha_Documento_Estudio_Peire")
-
+                tipo="Análisis de Documento",
+                titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
+                contenido=borrador
+            )
 # =========================================================
 # 7) HISTORIAL
 # =========================================================
