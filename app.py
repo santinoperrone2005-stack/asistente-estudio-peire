@@ -565,8 +565,8 @@ if menu == "Dashboard":
             st.session_state.menu_actual = "Contestación de Oficio"
             st.rerun()
 
-    with col2:
-        st.markdown(
+        with col2:
+            st.markdown(
             """
             <div class="mini-card">
                 <h4>📧 Redactar Mailing</h4>
@@ -595,6 +595,19 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
+                <h4>🧠 Diagnóstico Inteligente</h4>
+                <p>Clasificar documentos, detectar datos clave y sugerir el próximo paso.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Diagnóstico Inteligente", key="go_diag"):
+            st.session_state.menu_actual = "Diagnóstico Inteligente"
+            st.rerun()
+
+        st.markdown(
+            """
+            <div class="mini-card">
                 <h4>🕘 Ver Historial</h4>
                 <p>Consultar documentos generados en esta sesión.</p>
             </div>
@@ -614,24 +627,10 @@ if menu == "Dashboard":
             """,
             unsafe_allow_html=True
         )
-
-        st.markdown(
-            """
-            <div class="mini-card">
-                <h4>🧠 Diagnóstico Inteligente</h4>
-                <p>Clasificar documentos, detectar datos clave y sugerir el próximo paso.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Ir a Diagnóstico Inteligente", key="go_diag"):
-            st.session_state.menu_actual = "Diagnóstico Inteligente"
-            st.rerun()
-
         if st.button("Ir a Biblioteca de Prompts", key="go_prompts"):
             st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
             st.rerun()
-
+    
     if ultimo_doc:
         st.markdown("---")
         st.markdown("### Último documento generado")
