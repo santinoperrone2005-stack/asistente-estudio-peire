@@ -565,8 +565,8 @@ if menu == "Dashboard":
             st.session_state.menu_actual = "Contestación de Oficio"
             st.rerun()
 
-        with col2:
-            st.markdown(
+    with col2:
+        st.markdown(
             """
             <div class="mini-card">
                 <h4>📧 Redactar Mailing</h4>
@@ -630,7 +630,7 @@ if menu == "Dashboard":
         if st.button("Ir a Biblioteca de Prompts", key="go_prompts"):
             st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
             st.rerun()
-    
+
     if ultimo_doc:
         st.markdown("---")
         st.markdown("### Último documento generado")
