@@ -614,6 +614,20 @@ if menu == "Dashboard":
             """,
             unsafe_allow_html=True
         )
+
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>🧠 Diagnóstico Inteligente</h4>
+                <p>Clasificar documentos, detectar datos clave y sugerir el próximo paso.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Diagnóstico Inteligente", key="go_diag"):
+            st.session_state.menu_actual = "Diagnóstico Inteligente"
+            st.rerun()
+
         if st.button("Ir a Biblioteca de Prompts", key="go_prompts"):
             st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
             st.rerun()
