@@ -1125,45 +1125,141 @@ elif menu == "Contestación de Oficio":
     with col5:
         requiere_consent = st.checkbox("Aclarar facultades/consentimiento (si aplica)", value=False)
 
+    usar_ia_oficio = st.checkbox("Usar IA para redactar la contestación", value=True)
+    
     if st.button("Generar Contestación"):
-        t = "CONTESTACIÓN DE OFICIO\n\n"
-        t += f"A: {safe(organismo,'[Organismo/Juzgado]')}\n"
-        if dependencia.strip():
-            t += f"Dependencia: {dependencia.strip()}\n"
-        if expediente.strip():
-            t += f"Ref.: {expediente.strip()}\n"
-        t += f"Fecha: {safe(fecha,'[Fecha]')}\n\n"
 
-        if objeto.strip():
-            t += f"Objeto: {objeto.strip()}\n\n"
+        if usar_ia_oficio:
+            prompt_sistema = (
+                "Sos asistente jurídico del Estudio Peire. "
+                "Redactás contestaciones de oficio en español jurídico argentino. "
+                "El texto debe ser formal, claro, ordenado y apto para revisión profesional. "
+                "No inventes hechos, normas ni jurisprudencia. "
+                "Devolvé solo el texto final del documento."
+            )
 
-        t += "En respuesta al oficio recibido, se informa lo siguiente:\n\n"
-        if pedido.strip():
-            t += "I. Pedido del oficio:\n"
-            t += pedido.strip() + "\n\n"
+            prompt_usuario = f"""
+Redactá una CONTESTACIÓN DE OFICIO en español jurídico argentino.
 
-        t += "II. Respuesta:\n"
-        t += safe(respuesta, "[Completar información solicitada]") + "\n"
+Organismo / Juzgado: {organismo}
+Dependencia / Secretaría: {dependencia}
+Expediente: {expediente}
+Fecha: {fecha}
+Objeto: {objeto}
 
-        if adjuntos.strip():
-            t += "\nIII. Documentación adjunta:\n" + adjuntos.strip() + "\n"
+Pedido del oficio:
+{pedido}
 
-        if requiere_consent:
-            t += "\nSe deja constancia que la presente información se brinda en el marco de las facultades y autorizaciones correspondientes.\n"
+Información a informar:
+{respuesta}
 
-        if confidencialidad:
-            t += "\nLa presente contestación se emite a los fines del requerimiento indicado, para uso exclusivo del organismo requirente.\n"
+Adjuntos: {adjuntos}
+Incluir confidencialidad: {confidencialidad}
+Requiere aclaración de consentimiento/facultades: {requiere_consent}
 
-        t += "\nSin otro particular, saludo atentamente.\n"
-        t += bloque_firma(firmante, matricula, estudio, contacto)
+Firmante: {firmante}
+Matrícula: {matricula}
+Estudio: {estudio}
+Contacto: {contacto}
+
+Devolvé solo el texto final del documento.
+"""
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
+
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        else:
+            t = "CONTESTACIÓN DE OFICIO\n\n"
+            t += f"A: {safe(organismo,'[Organismo/Juzgado]')}\n"
+            if dependencia.strip():
+                t += f"Dependencia: {dependencia.strip()}\n"
+            if expediente.strip():
+                t += f"Ref.: {expediente.strip()}\n"
+            t += f"Fecha: {safe(fecha,'[Fecha]')}\n\n"
+
+            if objeto.strip():
+                t += f"Objeto: {objeto.strip()}\n\n"
+
+            t += "En respuesta al oficio recibido, se informa lo siguiente:\n\n"
+            if pedido.strip():
+                t += "I. Pedido del oficio:\n"
+                t += pedido.strip() + "\n\n"
+
+            t += "II. Respuesta:\n"
+            t += safe(respuesta, "[Completar información solicitada]") + "\n"
+
+            if adjuntos.strip():
+                t += "\nIII. Documentación adjunta:\n" + adjuntos.strip() + "\n"
+
+            if requiere_consent:
+                t += "\nSe deja constancia que la presente información se brinda en el marco de las facultades y autorizaciones correspondientes.\n"
+
+            if confidencialidad:
+                t += "\nLa presente contestación se emite a los fines del requerimiento indicado, para uso exclusivo del organismo requirente.\n"
+
+            t += "\nSin otro particular, saludo atentamente.\n"
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.session_state["ultimo_oficio"] = t
 
         guardar_en_historial(
-    tipo="Contestación de Oficio",
-    titulo=f"Oficio - {organismo or 'Sin organismo'}",
-    contenido=t
-)
-        st.text_area("Resultado", t, height=420)
-        exportar_word(t, "Contestacion_Oficio_Estudio_Peire")
+            tipo="Contestación de Oficio",
+            titulo=f"Oficio - {organismo or 'Sin organismo'}",
+            contenido=t
+        )
+
+    if "ultimo_oficio" in st.session_state:
+        st.markdown("### Resultado")
+        texto_actual_oficio = st.text_area(
+            "Texto generado / editable",
+            value=st.session_state["ultimo_oficio"],
+            height=420,
+            key="texto_resultado_oficio"
+        )
+
+        st.session_state["ultimo_oficio"] = texto_actual_oficio
+
+        st.markdown("### Editar con IA")
+        instruccion_oficio = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_oficio", ""),
+            placeholder="Ej: hacelo más formal, más breve, agregá un cierre más técnico."
+        )
+
+        if st.button("Aplicar cambios con IA", key="editar_oficio_ia"):
+            if not instruccion_oficio.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado_oficio = editar_texto_con_ia(texto_actual_oficio, instruccion_oficio)
+
+                if not texto_editado_oficio:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_oficio).startswith("ERROR_IA:"):
+                    st.error(texto_editado_oficio)
+                else:
+                    st.session_state["ultimo_oficio"] = texto_editado_oficio
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Contestación de Oficio",
+                        titulo=f"Edición IA - {organismo or 'Sin organismo'}",
+                        contenido=texto_editado_oficio
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_oficio"],
+            "Contestacion_Oficio_Estudio_Peire"
+        )
 
 # =========================================================
 # 4) MAILING MODO AGENTE
@@ -1191,83 +1287,166 @@ elif menu == "Mailing (Modo Agente)":
     with col5:
         incluir_agenda = st.checkbox("Sugerir coordinación de llamada/reunión", value=False)
 
+    usar_ia_mail = st.checkbox("Usar IA para redactar el mensaje", value=True)
+    
     if st.button("Generar Mailing"):
-        nombre_cli = safe(cliente, "[Cliente]")
-        caso_txt = safe(caso, "[Caso]")
 
-        if tipo_mail == "Actualización de caso":
-            asunto = f"Actualización – {caso_txt}"
-        elif tipo_mail == "Pedido de documentación":
-            asunto = f"Documentación necesaria – {caso_txt}"
-        elif tipo_mail == "Seguimiento":
-            asunto = f"Seguimiento – {caso_txt}"
-        elif tipo_mail == "Cierre / próximos pasos":
-            asunto = f"Próximos pasos – {caso_txt}"
+        if usar_ia_mail:
+            prompt_sistema = (
+                "Sos asistente del Estudio Peire. "
+                "Redactás emails y mensajes a clientes en español claro, profesional y útil. "
+                "No inventes hechos. "
+                "Devolvé solo el texto final."
+            )
+
+            prompt_usuario = f"""
+Redactá una comunicación para cliente.
+
+Tipo de mensaje: {tipo_mail}
+Canal: {canal}
+Tono: {tono}
+Cliente: {cliente}
+Caso: {caso}
+
+Estado actual:
+{estado}
+
+Próximo paso:
+{proximo_paso}
+
+Acción requerida al cliente:
+{accion_cliente}
+
+Sugerir coordinación de llamada/reunión: {incluir_agenda}
+Incluir disclaimer de confidencialidad: {incluir_disclaimer}
+
+Estudio: {estudio}
+Contacto: {contacto}
+
+Devolvé solo el texto final del mensaje.
+"""
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
+
         else:
-            asunto = f"Recordatorio – {caso_txt}"
+            nombre_cli = safe(cliente, "[Cliente]")
+            caso_txt = safe(caso, "[Caso]")
 
-        if canal == "WhatsApp (texto corto)":
-            t = f"{nombre_cli}, te escribo desde {estudio}. "
-            if tipo_mail == "Pedido de documentación":
-                t += "Necesitamos la siguiente documentación/confirmación para avanzar. "
-            t += safe(estado, "Actualización del caso. ").strip() + " "
-            if accion_cliente.strip():
-                t += f"¿Podés enviarnos: {accion_cliente.strip()}? "
-            if proximo_paso.strip():
-                t += f"Próximo paso: {proximo_paso.strip()} "
-            if incluir_agenda:
-                t += "Si te parece, coordinamos una llamada breve. "
-            if incluir_disclaimer:
-                t += "Mensaje confidencial."
-            
-            guardar_en_historial(
-    tipo="Mailing WhatsApp",
-    titulo=f"WhatsApp - {cliente or 'Sin cliente'}",
-    contenido=t
-)    
-
-            st.text_area("Resultado (WhatsApp)", t, height=220)
-            exportar_word(t, "WhatsApp_Estudio_Peire")
-        else:
-            if tono == "Cálido y profesional":
-                saludo = f"Hola {nombre_cli},"
-                cierre = "Un saludo"
-            elif tono == "Muy formal":
-                saludo = f"De mi mayor consideración {nombre_cli}:"
-                cierre = "Atentamente"
+            if tipo_mail == "Actualización de caso":
+                asunto = f"Actualización – {caso_txt}"
+            elif tipo_mail == "Pedido de documentación":
+                asunto = f"Documentación necesaria – {caso_txt}"
+            elif tipo_mail == "Seguimiento":
+                asunto = f"Seguimiento – {caso_txt}"
+            elif tipo_mail == "Cierre / próximos pasos":
+                asunto = f"Próximos pasos – {caso_txt}"
             else:
-                saludo = f"{nombre_cli},"
-                cierre = "Saludos"
+                asunto = f"Recordatorio – {caso_txt}"
 
-            cuerpo = f"Asunto: {asunto}\n\n{saludo}\n\n"
-            cuerpo += safe(estado, "[Estado actual del caso]") + "\n\n"
+            if canal == "WhatsApp (texto corto)":
+                t = f"{nombre_cli}, te escribo desde {estudio}. "
+                if tipo_mail == "Pedido de documentación":
+                    t += "Necesitamos la siguiente documentación/confirmación para avanzar. "
+                t += safe(estado, "Actualización del caso. ").strip() + " "
+                if accion_cliente.strip():
+                    t += f"¿Podés enviarnos: {accion_cliente.strip()}? "
+                if proximo_paso.strip():
+                    t += f"Próximo paso: {proximo_paso.strip()} "
+                if incluir_agenda:
+                    t += "Si te parece, coordinamos una llamada breve. "
+                if incluir_disclaimer:
+                    t += "Mensaje confidencial."
+            else:
+                if tono == "Cálido y profesional":
+                    saludo = f"Hola {nombre_cli},"
+                    cierre = "Un saludo"
+                elif tono == "Muy formal":
+                    saludo = f"De mi mayor consideración {nombre_cli}:"
+                    cierre = "Atentamente"
+                else:
+                    saludo = f"{nombre_cli},"
+                    cierre = "Saludos"
 
-            if tipo_mail == "Pedido de documentación" and accion_cliente.strip():
-                cuerpo += f"Para poder avanzar, necesitamos que nos envíes: {accion_cliente.strip()}.\n\n"
-            elif accion_cliente.strip():
-                cuerpo += f"Acción requerida: {accion_cliente.strip()}.\n\n"
+                t = f"Asunto: {asunto}\n\n{saludo}\n\n"
+                t += safe(estado, "[Estado actual del caso]") + "\n\n"
 
-            if proximo_paso.strip():
-                cuerpo += f"Próximo paso: {proximo_paso.strip()}.\n\n"
+                if tipo_mail == "Pedido de documentación" and accion_cliente.strip():
+                    t += f"Para poder avanzar, necesitamos que nos envíes: {accion_cliente.strip()}.\n\n"
+                elif accion_cliente.strip():
+                    t += f"Acción requerida: {accion_cliente.strip()}.\n\n"
 
-            if incluir_agenda:
-                cuerpo += "Si estás de acuerdo, coordinamos una llamada/reunión breve para confirmar los próximos pasos.\n\n"
+                if proximo_paso.strip():
+                    t += f"Próximo paso: {proximo_paso.strip()}.\n\n"
 
-            if incluir_disclaimer:
-                cuerpo += "Este mensaje contiene información confidencial. Si no sos el destinatario, por favor informanos y eliminá el contenido.\n\n"
+                if incluir_agenda:
+                    t += "Si estás de acuerdo, coordinamos una llamada/reunión breve para confirmar los próximos pasos.\n\n"
 
-            cuerpo += f"{cierre},\n{estudio}\n"
-            if contacto.strip():
-                cuerpo += f"{contacto}\n"
+                if incluir_disclaimer:
+                    t += "Este mensaje contiene información confidencial. Si no sos el destinatario, por favor informanos y eliminá el contenido.\n\n"
 
-            guardar_en_historial(
-    tipo="Mailing Email",
-    titulo=f"Email - {cliente or 'Sin cliente'}",
-    contenido=cuerpo
-)
+                t += f"{cierre},\n{estudio}\n"
+                if contacto.strip():
+                    t += f"{contacto}\n"
 
-            st.text_area("Resultado (Email)", cuerpo, height=360)
-            exportar_word(cuerpo, "Email_Estudio_Peire")
+        st.session_state["ultimo_mail"] = t
+
+        guardar_en_historial(
+            tipo="Mailing",
+            titulo=f"Mailing - {cliente or 'Sin cliente'}",
+            contenido=t
+        )
+
+    if "ultimo_mail" in st.session_state:
+        st.markdown("### Resultado")
+        texto_actual_mail = st.text_area(
+            "Texto generado / editable",
+            value=st.session_state["ultimo_mail"],
+            height=320,
+            key="texto_resultado_mail"
+        )
+
+        st.session_state["ultimo_mail"] = texto_actual_mail
+
+        st.markdown("### Editar con IA")
+        instruccion_mail = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_mail", ""),
+            placeholder="Ej: hacelo más breve, más formal, más cercano."
+        )
+
+        if st.button("Aplicar cambios con IA", key="editar_mail_ia"):
+            if not instruccion_mail.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado_mail = editar_texto_con_ia(texto_actual_mail, instruccion_mail)
+
+                if not texto_editado_mail:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_mail).startswith("ERROR_IA:"):
+                    st.error(texto_editado_mail)
+                else:
+                    st.session_state["ultimo_mail"] = texto_editado_mail
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Mailing",
+                        titulo=f"Edición IA - {cliente or 'Sin cliente'}",
+                        contenido=texto_editado_mail
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_mail"],
+            "Mailing_Estudio_Peire"
+        )
 
 # =========================================================
 # 5) PRESUPUESTO
@@ -1305,42 +1484,146 @@ elif menu == "Presupuesto":
 
     observaciones = st.text_area("Observaciones (opcional)", height=70)
 
+    usar_ia_presupuesto = st.checkbox("Usar IA para redactar el presupuesto", value=True)
+    
     if st.button("Generar Presupuesto"):
-        t = "PRESUPUESTO DE HONORARIOS\n\n"
-        t += f"Estudio: {estudio}\n"
-        t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
-        t += f"Cliente: {safe(cliente,'[Cliente]')}\n"
-        t += f"Servicio: {safe(servicio,'[Servicio]')}\n\n"
 
-        t += f"Modalidad: {modalidad}\n"
-        t += f"Honorarios: {safe(honorarios,'[Completar]')}\n\n"
+        if usar_ia_presupuesto:
+            prompt_sistema = (
+                "Sos asistente del Estudio Peire. "
+                "Redactás presupuestos jurídicos profesionales en español claro y formal. "
+                "No inventes hechos ni condiciones no dadas. "
+                "Devolvé solo el texto final."
+            )
 
-        t += "Alcance (incluye):\n" + safe(alcance, "[Detallar alcance]") + "\n\n"
-        t += "No incluye:\n" + safe(no_incluye, "[Detallar exclusiones]") + "\n\n"
-        t += "Plazos estimados:\n" + safe(plazos, "[Detallar plazos]") + "\n\n"
-        t += "Forma de pago:\n" + safe(forma_pago, "[Detallar forma de pago]") + "\n\n"
+            prompt_usuario = f"""
+Redactá un presupuesto de honorarios jurídicos.
 
-        if incluir_gastos:
-            t += "Gastos:\nLos gastos y erogaciones (tasa, diligenciamientos, informes, cédulas, traslados, etc.) no se encuentran incluidos salvo indicación expresa.\n\n"
-        if incluir_impuestos:
-            t += "Impuestos/retenciones:\nLos importes podrán estar sujetos a impuestos y/o retenciones según normativa aplicable.\n\n"
-        if incluir_condiciones:
-            t += "Condiciones generales:\nEl presente presupuesto se basa en la información provista. Cualquier ampliación del alcance o complejidad no prevista podrá implicar ajustes.\n\n"
+Cliente: {cliente}
+Servicio: {servicio}
+Fecha: {fecha}
+Validez: {validez}
+Modalidad: {modalidad}
+Honorarios: {honorarios}
 
-        t += f"Validez: {validez}\n"
-        if observaciones.strip():
-            t += "\nObservaciones:\n" + observaciones.strip() + "\n"
+Alcance:
+{alcance}
 
-        t += bloque_firma(firmante, matricula, estudio, contacto)
+No incluye:
+{no_incluye}
+
+Plazos:
+{plazos}
+
+Forma de pago:
+{forma_pago}
+
+Aclarar impuestos/retenciones: {incluir_impuestos}
+Aclarar gastos: {incluir_gastos}
+Incluir condiciones generales: {incluir_condiciones}
+
+Observaciones:
+{observaciones}
+
+Estudio: {estudio}
+Firmante: {firmante}
+Matrícula: {matricula}
+Contacto: {contacto}
+
+Devolvé solo el texto final del presupuesto.
+"""
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
+
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        else:
+            t = "PRESUPUESTO DE HONORARIOS\n\n"
+            t += f"Estudio: {estudio}\n"
+            t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
+            t += f"Cliente: {safe(cliente,'[Cliente]')}\n"
+            t += f"Servicio: {safe(servicio,'[Servicio]')}\n\n"
+
+            t += f"Modalidad: {modalidad}\n"
+            t += f"Honorarios: {safe(honorarios,'[Completar]')}\n\n"
+
+            t += "Alcance (incluye):\n" + safe(alcance, "[Detallar alcance]") + "\n\n"
+            t += "No incluye:\n" + safe(no_incluye, "[Detallar exclusiones]") + "\n\n"
+            t += "Plazos estimados:\n" + safe(plazos, "[Detallar plazos]") + "\n\n"
+            t += "Forma de pago:\n" + safe(forma_pago, "[Detallar forma de pago]") + "\n\n"
+
+            if incluir_gastos:
+                t += "Gastos:\nLos gastos y erogaciones no se encuentran incluidos salvo indicación expresa.\n\n"
+            if incluir_impuestos:
+                t += "Impuestos/retenciones:\nLos importes podrán estar sujetos a impuestos y/o retenciones según normativa aplicable.\n\n"
+            if incluir_condiciones:
+                t += "Condiciones generales:\nEl presente presupuesto se basa en la información provista. Cualquier ampliación del alcance o complejidad no prevista podrá implicar ajustes.\n\n"
+
+            t += f"Validez: {validez}\n"
+            if observaciones.strip():
+                t += "\nObservaciones:\n" + observaciones.strip() + "\n"
+
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.session_state["ultimo_presupuesto"] = t
 
         guardar_en_historial(
-    tipo="Presupuesto",
-    titulo=f"Presupuesto - {cliente or 'Sin cliente'}",
-    contenido=t
-)
-        
-        st.text_area("Resultado", t, height=420)
-        exportar_word(t, "Presupuesto_Estudio_Peire")
+            tipo="Presupuesto",
+            titulo=f"Presupuesto - {cliente or 'Sin cliente'}",
+            contenido=t
+        )
+
+    if "ultimo_presupuesto" in st.session_state:
+        st.markdown("### Resultado")
+        texto_actual_presupuesto = st.text_area(
+            "Texto generado / editable",
+            value=st.session_state["ultimo_presupuesto"],
+            height=360,
+            key="texto_resultado_presupuesto"
+        )
+
+        st.session_state["ultimo_presupuesto"] = texto_actual_presupuesto
+
+        st.markdown("### Editar con IA")
+        instruccion_presupuesto = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_presupuesto", ""),
+            placeholder="Ej: hacelo más formal, agregá más detalle, resumilo."
+        )
+
+        if st.button("Aplicar cambios con IA", key="editar_presupuesto_ia"):
+            if not instruccion_presupuesto.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado_presupuesto = editar_texto_con_ia(texto_actual_presupuesto, instruccion_presupuesto)
+
+                if not texto_editado_presupuesto:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_presupuesto).startswith("ERROR_IA:"):
+                    st.error(texto_editado_presupuesto)
+                else:
+                    st.session_state["ultimo_presupuesto"] = texto_editado_presupuesto
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Presupuesto",
+                        titulo=f"Edición IA - {cliente or 'Sin cliente'}",
+                        contenido=texto_editado_presupuesto
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_presupuesto"],
+            "Presupuesto_Estudio_Peire"
+        )
 
 # =========================================================
 # 6) ANÁLISIS DE DOCUMENTO
