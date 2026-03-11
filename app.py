@@ -367,6 +367,53 @@ def generar_texto_con_ia(prompt_sistema: str, prompt_usuario: str):
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
+def diagnosticar_documento_con_ia(texto_documento: str, nombre_archivo: str = ""):
+    cliente = obtener_cliente_openai()
+    if not cliente:
+        return None
+
+    try:
+        respuesta = cliente.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Sos asistente jurídico del Estudio Peire. "
+                        "Analizás documentos jurídicos en español argentino. "
+                        "No inventes datos. Si algo no surge del documento, decí 'No detectado'. "
+                        "Tu tarea es diagnosticar el documento y recomendar el próximo paso interno."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Analizá el siguiente documento jurídico y devolvé el resultado con este formato exacto:
+
+TIPO DETECTADO:
+TEMA PRINCIPAL:
+REMITENTE DETECTADO:
+DESTINATARIO DETECTADO:
+MONTO DETECTADO:
+PLAZO DETECTADO:
+RESUMEN EJECUTIVO:
+RIESGO / URGENCIA:
+PRÓXIMO PASO RECOMENDADO:
+HERRAMIENTA DEL SISTEMA SUGERIDA:
+ESTRATEGIA SUGERIDA:
+
+Nombre del archivo: {nombre_archivo}
+
+Texto del documento:
+{texto_documento}
+""",
+                },
+            ],
+        )
+        return respuesta.output_text
+    except Exception as e:
+        return f"ERROR_IA: {str(e)}"
+
 def editar_texto_con_ia(texto_original: str, instruccion_usuario: str):
     cliente = obtener_cliente_openai()
     if not cliente:
@@ -419,6 +466,7 @@ st.markdown(
 # =============================
 opciones_menu = [
     "Dashboard",
+    "Diagnóstico Inteligente",
     "Carta Documento",
     "Respuesta Carta Documento",
     "Contestación de Oficio",
@@ -579,6 +627,124 @@ if menu == "Dashboard":
             """,
             unsafe_allow_html=True
         )
+
+# =========================================================
+# DIAGNÓSTICO INTELIGENTE
+# =========================================================
+elif menu == "Diagnóstico Inteligente":
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+    st.header("🧠 Diagnóstico Inteligente de Documento")
+
+    st.write("Subí un documento y la IA va a detectar automáticamente qué es, de qué trata y cuál sería el próximo paso recomendado dentro del sistema.")
+
+    archivo_diag = st.file_uploader(
+        "Subir documento para diagnóstico",
+        type=["pdf", "docx", "txt"],
+        key="archivo_diagnostico"
+    )
+
+    observaciones_diag = st.text_area(
+        "Observaciones del estudio (opcional)",
+        height=100,
+        placeholder="Ej: llegó hoy, parece reclamo por alquiler, cliente dice que no corresponde, etc."
+    )
+
+    texto_diagnostico = ""
+
+    if archivo_diag is not None:
+        texto_diagnostico = extraer_texto_archivo(archivo_diag)
+
+        if texto_diagnostico.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(texto_diagnostico)
+            texto_diagnostico = ""
+        elif texto_diagnostico.strip():
+            st.success(f"Archivo cargado: {archivo_diag.name}")
+            st.text_area(
+                "Texto detectado del archivo",
+                value=texto_diagnostico,
+                height=220
+            )
+        else:
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
+
+    if st.button("Generar diagnóstico con IA"):
+        if not texto_diagnostico.strip():
+            st.warning("Primero subí un archivo válido para diagnosticar.")
+        else:
+            texto_base = texto_diagnostico
+            if observaciones_diag.strip():
+                texto_base += f"\n\nObservaciones del estudio:\n{observaciones_diag}"
+
+            diagnostico = diagnosticar_documento_con_ia(
+                texto_documento=texto_base,
+                nombre_archivo=archivo_diag.name if archivo_diag else ""
+            )
+
+            if not diagnostico:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
+
+            if str(diagnostico).startswith("ERROR_IA:"):
+                st.error(diagnostico)
+                st.stop()
+
+            st.session_state["ultimo_diagnostico"] = diagnostico
+
+            guardar_en_historial(
+                tipo="Diagnóstico Inteligente",
+                titulo=f"Diagnóstico - {archivo_diag.name if archivo_diag else 'Sin archivo'}",
+                contenido=diagnostico
+            )
+
+    if "ultimo_diagnostico" in st.session_state:
+        st.markdown("### Resultado del diagnóstico")
+
+        texto_actual_diagnostico = st.text_area(
+            "Diagnóstico generado / editable",
+            value=st.session_state["ultimo_diagnostico"],
+            height=420,
+            key="texto_resultado_diagnostico"
+        )
+
+        st.session_state["ultimo_diagnostico"] = texto_actual_diagnostico
+
+        st.markdown("### Editar diagnóstico con IA")
+        instruccion_diag = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_diagnostico", ""),
+            placeholder="Ej: resumilo más, agregá más detalle en la estrategia, hacelo más claro."
+        )
+
+        if st.button("Aplicar cambios al diagnóstico con IA"):
+            if not instruccion_diag.strip():
+                st.warning("Escribí una instrucción para editar el diagnóstico.")
+            else:
+                texto_editado_diag = editar_texto_con_ia(
+                    texto_actual_diagnostico,
+                    instruccion_diag
+                )
+
+                if not texto_editado_diag:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_diag).startswith("ERROR_IA:"):
+                    st.error(texto_editado_diag)
+                else:
+                    st.session_state["ultimo_diagnostico"] = texto_editado_diag
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Diagnóstico Inteligente",
+                        titulo="Edición IA - Diagnóstico",
+                        contenido=texto_editado_diag
+                    )
+
+                    st.success("Diagnóstico actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_diagnostico"],
+            "Diagnostico_Inteligente_Estudio_Peire"
+        )
+
 # =========================================================
 # 1) CARTA DOCUMENTO
 # =========================================================
@@ -1827,6 +1993,7 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
                 titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
                 contenido=borrador
             )
+
 # =========================================================
 # 7) HISTORIAL
 # =========================================================
