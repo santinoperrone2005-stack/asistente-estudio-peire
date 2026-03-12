@@ -657,7 +657,8 @@ elif menu == "Diagnóstico Inteligente":
     with col_b:
         if st.button("Nuevo diagnóstico", key="reset_diagnostico"):
             limpiar_resultado("ultimo_diagnostico")
-            limpiar_resultado("texto_resultado_diagnostico")
+            limpiar_resultado("editor_diagnostico")
+            limpiar_resultado("sync_editor_diagnostico")
             limpiar_resultado("instruccion_edicion_diagnostico")
             st.rerun()
     
@@ -717,7 +718,7 @@ elif menu == "Diagnóstico Inteligente":
                 st.stop()
 
             st.session_state["ultimo_diagnostico"] = diagnostico
-            st.session_state["texto_resultado_diagnostico"] = diagnostico
+            st.session_state["sync_editor_diagnostico"] = True
 
             guardar_en_historial(
                 tipo="Diagnóstico Inteligente",
@@ -727,15 +728,19 @@ elif menu == "Diagnóstico Inteligente":
 
     if "ultimo_diagnostico" in st.session_state:
 
-        if "texto_resultado_diagnostico" not in st.session_state:
-            st.session_state["texto_resultado_diagnostico"] = st.session_state["ultimo_diagnostico"]
+        if "editor_diagnostico" not in st.session_state:
+            st.session_state["editor_diagnostico"] = st.session_state["ultimo_diagnostico"]
+
+        if st.session_state.get("sync_editor_diagnostico", False):
+            st.session_state["editor_diagnostico"] = st.session_state["ultimo_diagnostico"]
+            st.session_state["sync_editor_diagnostico"] = False
 
         st.markdown("### Resultado del diagnóstico")
 
         texto_actual_diagnostico = st.text_area(
             "Diagnóstico generado / editable",
             height=420,
-            key="texto_resultado_diagnostico"
+            key="editor_diagnostico"
         )
 
         st.session_state["ultimo_diagnostico"] = texto_actual_diagnostico
@@ -762,12 +767,12 @@ elif menu == "Diagnóstico Inteligente":
                     st.error(texto_editado_diag)
                 else:
                     st.session_state["ultimo_diagnostico"] = texto_editado_diag
-                    st.session_state["texto_resultado_diagnostico"] = texto_editado_diag
+                    st.session_state["sync_editor_diagnostico"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Diagnóstico Inteligente",
                         titulo="Edición IA - Diagnóstico",
-                        contenido=st.session_state["ultimo_diagnostico"]
+                        contenido=texto_editado_diag
                     )
 
                     st.success("Diagnóstico actualizado con IA.")
