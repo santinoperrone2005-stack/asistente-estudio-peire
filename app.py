@@ -790,7 +790,7 @@ elif menu == "Diagnóstico Inteligente":
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_diag"):
 
     claves = list(st.session_state.keys())
 
@@ -1066,7 +1066,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_cd"):
 
     claves = list(st.session_state.keys())
 
@@ -1388,7 +1388,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_respuesta"):
 
     claves = list(st.session_state.keys())
 
@@ -1591,7 +1591,7 @@ Devolvé solo el texto final del documento.
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_oficio"):
 
     claves = list(st.session_state.keys())
 
@@ -1818,7 +1818,7 @@ Devolvé solo el texto final del mensaje.
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_mail"):
 
     claves = list(st.session_state.keys())
 
@@ -2035,7 +2035,7 @@ Devolvé solo el texto final del presupuesto.
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_presupuesto"):
 
     claves = list(st.session_state.keys())
 
@@ -2287,7 +2287,7 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
 
 st.divider()
 
-if st.button("🧹 Limpiar filtros"):
+if st.button("🧹 Limpiar filtros", key="limpiar_analisis"):
 
     claves = list(st.session_state.keys())
 
