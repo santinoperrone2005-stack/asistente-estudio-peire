@@ -760,7 +760,7 @@ elif menu == "Diagnóstico Inteligente":
                     guardar_en_historial(
                         tipo="Edición IA - Diagnóstico Inteligente",
                         titulo="Edición IA - Diagnóstico",
-                        contenido=texto_editado_diag
+                        contenido=st.session_state["ultimo_texto_respuesta_cd"]
                     )
 
                     st.success("Diagnóstico actualizado con IA.")
@@ -968,7 +968,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
         guardar_en_historial(
             tipo="Carta Documento",
             titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
-            contenido=t
+            contenido=st.session_state["ultimo_texto_respuesta_cd"]
         )
 
     if "ultimo_texto_carta_documento" in st.session_state:
@@ -1304,7 +1304,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
         guardar_en_historial(
             tipo="Respuesta Carta Documento",
             titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
-            contenido=t
+            contenido=st.session_state["ultimo_texto_respuesta_cd"]
         )
 
 # =========================================================
@@ -1431,7 +1431,7 @@ Devolvé solo el texto final del documento.
         guardar_en_historial(
             tipo="Contestación de Oficio",
             titulo=f"Oficio - {organismo or 'Sin organismo'}",
-            contenido=t
+            contenido=st.session_state["ultimo_texto_respuesta_cd"]
         )
 
     if "ultimo_oficio" in st.session_state:
@@ -1468,7 +1468,7 @@ Devolvé solo el texto final del documento.
                     guardar_en_historial(
                         tipo="Edición IA - Contestación de Oficio",
                         titulo=f"Edición IA - {organismo or 'Sin organismo'}",
-                        contenido=texto_editado_oficio
+                        contenido=st.session_state["ultimo_texto_respuesta_cd"]
                     )
 
                     st.success("Texto actualizado con IA.")
@@ -1627,7 +1627,7 @@ Devolvé solo el texto final del mensaje.
         guardar_en_historial(
             tipo="Mailing",
             titulo=f"Mailing - {cliente or 'Sin cliente'}",
-            contenido=t
+            contenido=st.session_state["ultimo_texto_respuesta_cd"]
         )
 
     if "ultimo_mail" in st.session_state:
@@ -1664,7 +1664,7 @@ Devolvé solo el texto final del mensaje.
                     guardar_en_historial(
                         tipo="Edición IA - Mailing",
                         titulo=f"Edición IA - {cliente or 'Sin cliente'}",
-                        contenido=texto_editado_mail
+                        contenido=st.session_state["ultimo_texto_respuesta_cd"]
                     )
 
                     st.success("Texto actualizado con IA.")
@@ -1813,7 +1813,7 @@ Devolvé solo el texto final del presupuesto.
         guardar_en_historial(
             tipo="Presupuesto",
             titulo=f"Presupuesto - {cliente or 'Sin cliente'}",
-            contenido=t
+            contenido=st.session_state["ultimo_texto_respuesta_cd"]
         )
 
     if "ultimo_presupuesto" in st.session_state:
@@ -1850,7 +1850,7 @@ Devolvé solo el texto final del presupuesto.
                     guardar_en_historial(
                         tipo="Edición IA - Presupuesto",
                         titulo=f"Edición IA - {cliente or 'Sin cliente'}",
-                        contenido=texto_editado_presupuesto
+                        contenido=st.session_state["ultimo_texto_respuesta_cd"]
                     )
 
                     st.success("Texto actualizado con IA.")
