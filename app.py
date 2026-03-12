@@ -788,6 +788,24 @@ elif menu == "Diagnóstico Inteligente":
             "Diagnostico_Inteligente_Estudio_Peire"
         )
 
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # 1) CARTA DOCUMENTO
 # =========================================================
@@ -1046,6 +1064,24 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             "Carta_Documento_Estudio_Peire"
         )
 
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
 # =========================================================
@@ -1066,20 +1102,54 @@ elif menu == "Respuesta Carta Documento":
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
 
     if datos_analisis:
+
         st.success("Se cargó información desde 'Análisis de Documento'.")
 
         col_ref1, col_ref2 = st.columns(2)
-        with col_ref1:
-            st.text_input("Remitente detectado", value=datos_analisis.get("remitente", ""), disabled=True)
-            st.text_input("Destinatario detectado", value=datos_analisis.get("destinatario", ""), disabled=True)
-            st.text_input("Tipo de documento", value=datos_analisis.get("tipo_documento", ""), disabled=True)
-        with col_ref2:
-            st.text_input("Fecha detectada", value=datos_analisis.get("fecha_doc", ""), disabled=True)
-            st.text_input("Monto detectado", value=datos_analisis.get("monto", ""), disabled=True)
-            st.text_input("Objeto detectado", value=datos_analisis.get("objeto", ""), disabled=True)
 
-        if st.button("Limpiar datos cargados del análisis"):
-            del st.session_state["analisis_para_respuesta"]
+        with col_ref1:
+            remitente = st.text_input(
+                "Remitente detectado",
+                value=datos_analisis.get("remitente", ""),
+                key="remitente_detectado"
+            )
+
+            destinatario = st.text_input(
+                "Destinatario detectado",
+                value=datos_analisis.get("destinatario", ""),
+                key="destinatario_detectado"
+            )
+
+            tipo_documento = st.text_input(
+                "Tipo de documento",
+                value=datos_analisis.get("tipo_documento", ""),
+                key="tipo_documento_detectado"
+            )
+
+        with col_ref2:
+            fecha_doc = st.text_input(
+                "Fecha detectada",
+                value=datos_analisis.get("fecha_doc", ""),
+                key="fecha_detectada"
+            )
+
+            monto = st.text_input(
+                "Monto detectado",
+                value=datos_analisis.get("monto", ""),
+                key="monto_detectado"
+            )
+
+            objeto = st.text_input(
+                "Objeto detectado",
+                value=datos_analisis.get("objeto", ""),
+                key="objeto_detectado"
+            )
+
+        if st.button("🧹 Limpiar datos cargados del análisis"):
+
+            if "analisis_para_respuesta" in st.session_state:
+                del st.session_state["analisis_para_respuesta"]
+
             st.rerun()
 
     col1, col2, col3 = st.columns(3)
@@ -1316,6 +1386,24 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             "Respuesta_Carta_Documento_Estudio_Peire"
         )
 
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
@@ -1500,6 +1588,24 @@ Devolvé solo el texto final del documento.
             st.session_state["ultimo_oficio"],
             "Contestacion_Oficio_Estudio_Peire"
         )
+
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
 
 # =========================================================
 # 4) MAILING MODO AGENTE
@@ -1710,6 +1816,24 @@ Devolvé solo el texto final del mensaje.
             "Mailing_Estudio_Peire"
         )
 
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # 5) PRESUPUESTO
 # =========================================================
@@ -1909,9 +2033,24 @@ Devolvé solo el texto final del presupuesto.
             "Presupuesto_Estudio_Peire"
         )
 
-# =========================================================
-# 6) ANÁLISIS DE DOCUMENTO
-# =========================================================
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # ANÁLISIS DE DOCUMENTO
 # =========================================================
@@ -2146,6 +2285,24 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
             "Analisis_Documento_Estudio_Peire"
         )
 
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
+
 # =========================================================
 # 7) HISTORIAL
 # =========================================================
@@ -2174,6 +2331,24 @@ elif menu == "Historial":
             st.session_state["historial_documentos"] = []
             st.success("Historial borrado.")
             st.rerun()
+
+st.divider()
+
+if st.button("🧹 Limpiar filtros"):
+
+    claves = list(st.session_state.keys())
+
+    for k in claves:
+        if (
+            "editor" in k
+            or "ultimo" in k
+            or "sync" in k
+            or "analisis" in k
+            or "archivo" in k
+        ):
+            del st.session_state[k]
+
+    st.rerun()
 
 # =========================================================
 # 8) BIBLIOTECA OFICIAL DE PROMPTS
