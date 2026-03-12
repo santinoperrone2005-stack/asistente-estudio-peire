@@ -130,16 +130,40 @@ def aplicar_estilo():
         .stButton > button {{
             background-color: {PRIMARY};
             color: white !important;
-            border: none;
-            border-radius: 12px;
-            padding: 0.65rem 1rem;
-            font-weight: 600;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.65rem 1rem !important;
+            font-weight: 600 !important;
             width: 100%;
+            opacity: 1 !important;
         }}
 
         .stButton > button:hover {{
-            background-color: {PRIMARY_DARK};
+            background-color: {PRIMARY_DARK} !important;
             color: white !important;
+        }}
+
+        .stDownloadButton > button {{
+            background-color: {PRIMARY} !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.65rem 1rem !important;
+            font-weight: 600 !important;
+            width: 100%;
+            opacity: 1 !important;
+        }}
+
+        .stDownloadButton > button:hover {{
+            background-color: {PRIMARY_DARK} !important;
+            color: white !important;
+        }}
+
+        .stDownloadButton button p,
+        .stDownloadButton button span,
+        .stDownloadButton button div {{
+            color: white !important;
+            opacity: 1 !important;
         }}
 
         .stTextInput input,
@@ -148,6 +172,21 @@ def aplicar_estilo():
             color: {TEXT} !important;
             border: 1px solid {BORDER} !important;
             border-radius: 12px !important;
+            box-shadow: none !important;
+            caret-color: {TEXT} !important;
+        }}
+
+        .stTextInput input:focus,
+        .stTextArea textarea:focus {{
+            border: 1px solid {PRIMARY} !important;
+            box-shadow: 0 0 0 1px {PRIMARY} !important;
+            outline: none !important;
+        }}
+
+        .stTextInput input::selection,
+        .stTextArea textarea::selection {{
+            background-color: #bae6fd !important;
+            color: {TEXT} !important;
         }}
 
         .stTextInput input::placeholder,
@@ -208,11 +247,6 @@ def aplicar_estilo():
             border-radius: 14px;
         }}
 
-        .stDownloadButton > button {{
-            border-radius: 12px;
-            font-weight: 600;
-        }}
-
         .bloque-suave {{
             background-color: #ffffff;
             border: 1px solid {BORDER};
@@ -224,6 +258,7 @@ def aplicar_estilo():
         """,
         unsafe_allow_html=True
     )
+
 aplicar_estilo()
 
 # =============================
@@ -501,14 +536,11 @@ if st.sidebar.button("Cerrar sesión"):
     st.session_state.logged_in = False
     st.rerun()
 # =========================================================
-# 0) DASHBOARD
+# DASHBOARD
 # =========================================================
 if menu == "Dashboard":
     st.markdown("## Panel principal")
     st.markdown("Elegí la tarea que querés realizar.")
-
-    historial = st.session_state.get("historial_documentos", [])
-    ultimo_doc = historial[0] if historial else None
 
     col1, col2 = st.columns(2)
 
@@ -529,32 +561,6 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
-                <h4>✉️ Responder Carta Documento</h4>
-                <p>Preparar respuestas a documentos recibidos.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Ir a Respuesta Carta Documento", key="go_resp"):
-            st.session_state.menu_actual = "Respuesta Carta Documento"
-            st.rerun()
-
-        st.markdown(
-            """
-            <div class="mini-card">
-                <h4>📂 Analizar Documento</h4>
-                <p>Subir archivos, extraer texto y preparar un análisis base.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        if st.button("Ir a Análisis de Documento", key="go_analisis"):
-            st.session_state.menu_actual = "Análisis de Documento"
-            st.rerun()
-
-        st.markdown(
-            """
-            <div class="mini-card">
                 <h4>📑 Contestar Oficio</h4>
                 <p>Redactar contestaciones formales de oficio.</p>
             </div>
@@ -565,7 +571,6 @@ if menu == "Dashboard":
             st.session_state.menu_actual = "Contestación de Oficio"
             st.rerun()
 
-    with col2:
         st.markdown(
             """
             <div class="mini-card">
@@ -582,14 +587,28 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
-                <h4>💼 Hacer Presupuesto</h4>
-                <p>Generar propuestas y presupuestos de honorarios.</p>
+                <h4>📂 Analizar Documento</h4>
+                <p>Subir archivos, extraer texto y preparar un análisis base.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-        if st.button("Ir a Presupuesto", key="go_presupuesto"):
-            st.session_state.menu_actual = "Presupuesto"
+        if st.button("Ir a Análisis de Documento", key="go_analisis"):
+            st.session_state.menu_actual = "Análisis de Documento"
+            st.rerun()
+
+    with col2:
+        st.markdown(
+            """
+            <div class="mini-card">
+                <h4>✉️ Responder Carta Documento</h4>
+                <p>Preparar respuestas a documentos recibidos.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("Ir a Respuesta Carta Documento", key="go_resp"):
+            st.session_state.menu_actual = "Respuesta Carta Documento"
             st.rerun()
 
         st.markdown(
@@ -608,14 +627,14 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
-                <h4>🕘 Ver Historial</h4>
-                <p>Consultar documentos generados en esta sesión.</p>
+                <h4>💼 Hacer Presupuesto</h4>
+                <p>Generar propuestas y presupuestos de honorarios.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-        if st.button("Ir a Historial", key="go_historial"):
-            st.session_state.menu_actual = "Historial"
+        if st.button("Ir a Presupuesto", key="go_presupuesto"):
+            st.session_state.menu_actual = "Presupuesto"
             st.rerun()
 
         st.markdown(
@@ -630,20 +649,6 @@ if menu == "Dashboard":
         if st.button("Ir a Biblioteca de Prompts", key="go_prompts"):
             st.session_state.menu_actual = "Biblioteca Oficial de Prompts"
             st.rerun()
-
-    if ultimo_doc:
-        st.markdown("---")
-        st.markdown("### Último documento generado")
-        st.markdown(
-            f"""
-            <div class="bloque-suave">
-                <b>Tipo:</b> {ultimo_doc['tipo']}<br>
-                <b>Título:</b> {ultimo_doc['titulo']}<br>
-                <b>Fecha:</b> {ultimo_doc['fecha']}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 # =========================================================
 # DIAGNÓSTICO INTELIGENTE
@@ -1907,25 +1912,18 @@ Devolvé solo el texto final del presupuesto.
 # =========================================================
 # 6) ANÁLISIS DE DOCUMENTO
 # =========================================================
+# =========================================================
+# ANÁLISIS DE DOCUMENTO
+# =========================================================
 elif menu == "Análisis de Documento":
+    st.button("← Volver al panel principal", on_click=volver_al_dashboard, key="volver_analisis")
+
     st.header("📂 Análisis de Documento")
-    
-    col_a, col_b = st.columns([1, 1])
-    with col_a:
-        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
-    with col_b:
-        if st.button("Nuevo análisis", key="reset_analisis"):
-            limpiar_resultado("ultimo_analisis_documento")
-            limpiar_resultado("editor_analisis_documento")
-            limpiar_resultado("sync_editor_analisis_documento")
-            limpiar_resultado("instruccion_edicion_analisis_documento")
-            st.rerun()
-    
-    st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
 
     uploaded_file = st.file_uploader(
         "Subir archivo",
-        type=["pdf", "docx", "txt"]
+        type=["pdf", "docx", "txt"],
+        key="archivo_analisis"
     )
 
     tipo_documento = st.selectbox(
@@ -1936,46 +1934,160 @@ elif menu == "Análisis de Documento":
             "Oficio recibido",
             "Intimación",
             "Otro"
-        ]
+        ],
+        key="tipo_documento_analisis"
     )
 
     observaciones = st.text_area(
         "Observaciones / contexto del estudio",
         height=120,
-        placeholder="Ej: este documento llegó hoy, corresponde a un reclamo por alquiler, el cliente dice que ya pagó, etc."
+        placeholder="Ej: este documento llegó hoy, corresponde a un reclamo por alquiler, el cliente dice que ya pagó, etc.",
+        key="observaciones_analisis"
     )
 
     contenido_extraido = ""
-
     if uploaded_file is not None:
-        st.success(f"Archivo cargado: {uploaded_file.name}")
-
         contenido_extraido = extraer_texto_archivo(uploaded_file)
 
-        if contenido_extraido.startswith("ERROR_AL_LEER_ARCHIVO:"):
+        if str(contenido_extraido).startswith("ERROR_AL_LEER_ARCHIVO:"):
             st.error(contenido_extraido)
             contenido_extraido = ""
         elif contenido_extraido.strip():
-            st.subheader("Contenido detectado")
-            st.text_area("Texto extraído del archivo", contenido_extraido, height=250)
+            st.success(f"Archivo cargado: {uploaded_file.name}")
+            st.text_area(
+                "Texto detectado del archivo",
+                value=contenido_extraido,
+                height=220,
+                key="texto_detectado_analisis"
+            )
         else:
             st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
 
     st.subheader("Datos clave del documento")
-    remitente = st.text_input("Remitente", placeholder="Ej: Juan Pérez")
-    destinatario = st.text_input("Destinatario", placeholder="Ej: Carlos Fernández")
-    fecha_doc = st.text_input("Fecha del documento", placeholder="Ej: 06/03/2026")
-    monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000")
-    objeto = st.text_input("Objeto / tema principal", placeholder="Ej: Reclamo por alquiler adeudado")
+
+    remitente = st.text_input("Remitente", key="remitente_analisis")
+    destinatario = st.text_input("Destinatario", key="destinatario_analisis")
+    fecha_doc = st.text_input("Fecha del documento", key="fecha_doc_analisis")
+    monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000", key="monto_analisis")
+    objeto = st.text_input("Objeto / tema principal", placeholder="Ej: Reclamo por alquiler adeudado", key="objeto_analisis")
+
     resumen = st.text_area(
         "Resumen manual / puntos importantes",
-        height=150,
-        placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc."
+        height=140,
+        placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc.",
+        key="resumen_analisis"
     )
 
-    usar_ia_analisis = st.checkbox("Usar IA para analizar el documento", value=True)   
-    
-    col1, col2 = st.columns(2)
+    usar_ia_analisis = st.checkbox("Usar IA para analizar el documento", value=True, key="usar_ia_analisis")
+
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        if st.button("Preparar borrador con IA", key="generar_analisis"):
+            limpiar_resultado("ultimo_analisis_documento")
+            limpiar_resultado("editor_analisis_documento")
+            limpiar_resultado("sync_editor_analisis_documento")
+
+            texto_base = contenido_extraido if contenido_extraido.strip() else resumen
+
+            if usar_ia_analisis and texto_base.strip():
+                prompt_sistema = (
+                    "Sos asistente jurídico del Estudio Peire. "
+                    "Analizás documentos jurídicos en español argentino. "
+                    "No inventes hechos ni normas. "
+                    "Ordenás la información con claridad profesional. "
+                    "Devolvé un análisis interno útil para el estudio."
+                )
+
+                prompt_usuario = f"""
+Analizá el siguiente documento y prepará un borrador interno para el estudio.
+
+Tipo de documento: {tipo_documento}
+Remitente: {remitente}
+Destinatario: {destinatario}
+Fecha: {fecha_doc}
+Monto: {monto}
+Objeto: {objeto}
+
+Observaciones del estudio:
+{observaciones}
+
+Resumen manual:
+{resumen}
+
+Texto del documento:
+{texto_base}
+
+Devolvé:
+1. Resumen ejecutivo
+2. Puntos clave
+3. Riesgos o alertas
+4. Estrategia sugerida
+5. Próximo paso recomendado
+"""
+                borrador = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+
+                if not borrador:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                    st.stop()
+
+                if str(borrador).startswith("ERROR_IA:"):
+                    st.error(borrador)
+                    st.stop()
+            else:
+                borrador = f"""
+ANÁLISIS DEL DOCUMENTO
+
+Tipo de documento: {tipo_documento}
+Archivo cargado: {uploaded_file.name if uploaded_file else "[Sin archivo]"}
+Remitente: {remitente or "[No informado]"}
+Destinatario: {destinatario or "[No informado]"}
+Fecha: {fecha_doc or "[No informada]"}
+Monto: {monto or "[No informado]"}
+Objeto: {objeto or "[No informado]"}
+
+Observaciones del estudio:
+{observaciones or "[Sin observaciones]"}
+
+Resumen / puntos importantes:
+{resumen or "[Sin resumen]"}
+
+Texto extraído del archivo:
+{texto_base or "[Sin texto extraído]"}
+
+SUGERENCIA DE PRÓXIMO PASO:
+Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
+"""
+
+            st.session_state["analisis_para_respuesta"] = {
+                "texto_recibido": texto_base,
+                "hechos_reales": observaciones,
+                "remitente": remitente,
+                "destinatario": destinatario,
+                "fecha_doc": fecha_doc,
+                "monto": monto,
+                "objeto": objeto,
+                "tipo_documento": tipo_documento,
+                "resumen": resumen,
+            }
+
+            st.session_state["ultimo_analisis_documento"] = borrador
+            st.session_state["sync_editor_analisis_documento"] = True
+
+            guardar_en_historial(
+                tipo="Análisis de Documento",
+                titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
+                contenido=borrador
+            )
+
+            st.rerun()
+
+    with col_b:
+        if st.button("Limpiar filtros", key="reset_analisis"):
+            limpiar_resultado("ultimo_analisis_documento")
+            limpiar_resultado("editor_analisis_documento")
+            limpiar_resultado("sync_editor_analisis_documento")
+            limpiar_resultado("instruccion_edicion_analisis_documento")
+            st.rerun()
 
     if "ultimo_analisis_documento" in st.session_state:
 
