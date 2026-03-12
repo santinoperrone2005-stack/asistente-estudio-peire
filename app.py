@@ -725,51 +725,44 @@ elif menu == "Diagnóstico Inteligente":
     if "ultimo_diagnostico" in st.session_state:
         st.markdown("### Resultado del diagnóstico")
 
-        texto_actual_diagnostico = st.text_area(
-            "Diagnóstico generado / editable",
-            value=st.session_state["ultimo_diagnostico"],
-            height=420,
-            key="texto_resultado_diagnostico"
-        )
+    texto_actual_diagnostico = st.text_area(
+        "Diagnóstico generado / editable",
+        value=st.session_state["ultimo_diagnostico"],
+        height=420,
+        key="texto_resultado_diagnostico"
+    )
 
-        st.session_state["ultimo_diagnostico"] = texto_actual_diagnostico
+    st.session_state["ultimo_diagnostico"] = texto_actual_diagnostico
 
-        st.markdown("### Editar diagnóstico con IA")
-        instruccion_diag = st.text_input(
-            "Pedile cambios a la IA",
-            value=st.session_state.get("instruccion_edicion_diagnostico", ""),
-            placeholder="Ej: resumilo más, agregá más detalle en la estrategia, hacelo más claro."
-        )
+    st.markdown("### Editar diagnóstico con IA")
+    instruccion_diag = st.text_input(
+        "Pedile cambios a la IA",
+        value=st.session_state.get("instruccion_edicion_diagnostico", ""),
+        placeholder="Ej: resumilo más, agregá más detalle en la estrategia, hacelo más claro."
+    )
 
-        if st.button("Aplicar cambios al diagnóstico con IA", key="editar_diagnostico_ia"):
-            if not instruccion_diag.strip():
-                st.warning("Escribí una instrucción para editar el diagnóstico.")
+    if st.button("Aplicar cambios al diagnóstico con IA", key="editar_diagnostico_ia"):
+        if not instruccion_diag.strip():
+            st.warning("Escribí una instrucción para editar el diagnóstico.")
+        else:
+            texto_editado_diag = editar_texto_con_ia(
+                texto_actual_diagnostico,
+                instruccion_diag
+            )
+
+            if not texto_editado_diag:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+            elif str(texto_editado_diag).startswith("ERROR_IA:"):
+                st.error(texto_editado_diag)
             else:
-                texto_editado_diag = editar_texto_con_ia(
-                    texto_actual_diagnostico,
-                    instruccion_diag
-                )
+                st.session_state["ultimo_diagnostico"] = texto_editado_diag
+                st.success("Diagnóstico actualizado con IA.")
+                st.rerun()
 
-                if not texto_editado_diag:
-                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
-                elif str(texto_editado_diag).startswith("ERROR_IA:"):
-                    st.error(texto_editado_diag)
-                else:
-                    st.session_state["ultimo_diagnostico"] = texto_editado_diag
-
-                    guardar_en_historial(
-                        tipo="Edición IA - Diagnóstico Inteligente",
-                        titulo="Edición IA - Diagnóstico",
-                        contenido=st.session_state["ultimo_diagnostico"]
-                    )
-
-                    st.success("Diagnóstico actualizado con IA.")
-                    st.rerun()
-
-        exportar_word(
-            st.session_state["ultimo_diagnostico"],
-            "Diagnostico_Inteligente_Estudio_Peire"
-        )
+    exportar_word(
+        st.session_state["ultimo_diagnostico"],
+        "Diagnostico_Inteligente_Estudio_Peire"
+    )
 
 # =========================================================
 # 1) CARTA DOCUMENTO
