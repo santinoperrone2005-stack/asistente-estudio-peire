@@ -788,24 +788,6 @@ elif menu == "Diagnóstico Inteligente":
             "Diagnostico_Inteligente_Estudio_Peire"
         )
 
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_diag"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
-
 # =========================================================
 # 1) CARTA DOCUMENTO
 # =========================================================
@@ -1063,24 +1045,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             st.session_state["ultimo_texto_carta_documento"],
             "Carta_Documento_Estudio_Peire"
         )
-
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_cd"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
 
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
@@ -1386,24 +1350,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             "Respuesta_Carta_Documento_Estudio_Peire"
         )
 
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_respuesta"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
-
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
@@ -1588,24 +1534,6 @@ Devolvé solo el texto final del documento.
             st.session_state["ultimo_oficio"],
             "Contestacion_Oficio_Estudio_Peire"
         )
-
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_oficio"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
 
 # =========================================================
 # 4) MAILING MODO AGENTE
@@ -1816,24 +1744,6 @@ Devolvé solo el texto final del mensaje.
             "Mailing_Estudio_Peire"
         )
 
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_mail"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
-
 # =========================================================
 # 5) PRESUPUESTO
 # =========================================================
@@ -2032,24 +1942,6 @@ Devolvé solo el texto final del presupuesto.
             st.session_state["ultimo_presupuesto"],
             "Presupuesto_Estudio_Peire"
         )
-
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_presupuesto"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
 
 # =========================================================
 # ANÁLISIS DE DOCUMENTO
@@ -2284,24 +2176,6 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
             st.session_state["ultimo_analisis_documento"],
             "Analisis_Documento_Estudio_Peire"
         )
-
-st.divider()
-
-if st.button("🧹 Limpiar filtros", key="limpiar_analisis"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
 
 # =========================================================
 # 7) HISTORIAL
