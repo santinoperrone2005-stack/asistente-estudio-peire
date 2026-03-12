@@ -795,6 +795,9 @@ elif menu == "Carta Documento":
     with col_b:
         if st.button("Nuevo documento", key="reset_carta"):
             limpiar_resultado("ultimo_texto_carta_documento")
+            limpiar_resultado("editor_carta_documento")
+            limpiar_resultado("sync_editor_carta_documento")
+            limpiar_resultado("instruccion_edicion_carta_documento")
             st.rerun()
     
     col1, col2 = st.columns(2)
@@ -976,48 +979,41 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
         st.session_state["ultimo_texto_carta_documento"] = t
+        st.session_state["sync_editor_carta_documento"] = True
 
         guardar_en_historial(
             tipo="Carta Documento",
             titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
-            contenido=st.session_state["ultimo_texto_carta_documento"]
+            contenido=t
         )
 
     if "ultimo_texto_carta_documento" in st.session_state:
+
+        if "editor_carta_documento" not in st.session_state:
+            st.session_state["editor_carta_documento"] = st.session_state["ultimo_texto_carta_documento"]
+
+        if st.session_state.get("sync_editor_carta_documento", False):
+            st.session_state["editor_carta_documento"] = st.session_state["ultimo_texto_carta_documento"]
+            st.session_state["sync_editor_carta_documento"] = False
+
         st.markdown("### Resultado")
+
         texto_actual_cd = st.text_area(
             "Texto generado / editable",
-            value=st.session_state["ultimo_texto_carta_documento"],
             height=420,
-            key="texto_resultado_carta_documento"
+            key="editor_carta_documento"
         )
 
         st.session_state["ultimo_texto_carta_documento"] = texto_actual_cd
 
         st.markdown("### Editar con IA")
-        st.caption("Podés pedir cualquier cambio libremente. Ej: 'hacelo más firme', 'más corto', 'agregá reserva de daños', 'más formal'.")
-
-        col_edit1, col_edit2, col_edit3 = st.columns(3)
-
-        with col_edit1:
-            if st.button("Más firme", key="edit_cd_firme"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más firme, manteniendo tono profesional y jurídico."
-
-        with col_edit2:
-            if st.button("Más breve", key="edit_cd_breve"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más breve y directo, sin perder contenido jurídico importante."
-
-        with col_edit3:
-            if st.button("Más formal", key="edit_cd_formal"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más formal y técnico, manteniendo claridad."
-
         instruccion_edicion_cd = st.text_input(
             "Pedile cambios a la IA",
-            value=st.session_state.get("instruccion_edicion_cd", ""),
-            placeholder="Ej: agregá un párrafo final, hacelo menos agresivo, más técnico."
+            value=st.session_state.get("instruccion_edicion_carta_documento", ""),
+            placeholder="Ej: hacelo más firme, más técnico, más breve."
         )
 
-        if st.button("Aplicar cambios con IA", key="aplicar_edicion_cd"):
+        if st.button("Aplicar cambios con IA", key="editar_carta_ia"):
             if not instruccion_edicion_cd.strip():
                 st.warning("Escribí una instrucción para editar el texto.")
             else:
@@ -1029,6 +1025,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
                     st.error(texto_editado_cd)
                 else:
                     st.session_state["ultimo_texto_carta_documento"] = texto_editado_cd
+                    st.session_state["sync_editor_carta_documento"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Carta Documento",
@@ -1056,6 +1053,9 @@ elif menu == "Respuesta Carta Documento":
     with col_b:
         if st.button("Nueva respuesta", key="reset_respuesta_cd"):
             limpiar_resultado("ultimo_texto_respuesta_cd")
+            limpiar_resultado("editor_respuesta_cd")
+            limpiar_resultado("sync_editor_respuesta_cd")
+            limpiar_resultado("instruccion_edicion_respuesta_cd")
             st.rerun()
     
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
@@ -1249,44 +1249,41 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
         st.session_state["ultimo_texto_respuesta_cd"] = t
+        st.session_state["sync_editor_respuesta_cd"] = True
+
+        guardar_en_historial(
+            tipo="Respuesta Carta Documento",
+            titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
+            contenido=t
+        )
 
     if "ultimo_texto_respuesta_cd" in st.session_state:
+
+        if "editor_respuesta_cd" not in st.session_state:
+            st.session_state["editor_respuesta_cd"] = st.session_state["ultimo_texto_respuesta_cd"]
+
+        if st.session_state.get("sync_editor_respuesta_cd", False):
+            st.session_state["editor_respuesta_cd"] = st.session_state["ultimo_texto_respuesta_cd"]
+            st.session_state["sync_editor_respuesta_cd"] = False
+
         st.markdown("### Resultado")
-        texto_actual = st.session_state["ultimo_texto_respuesta_cd"]
 
         texto_actual = st.text_area(
             "Texto generado / editable",
-            value=texto_actual,
             height=420,
-            key="texto_resultado_respuesta_cd"
+            key="editor_respuesta_cd"
         )
 
         st.session_state["ultimo_texto_respuesta_cd"] = texto_actual
 
         st.markdown("### Editar con IA")
-        st.caption("Podés pedir cualquier cambio libremente. Ej: 'hacelo más firme', 'agregá un párrafo final', 'más corto', 'más formal', 'sacá la parte del acuerdo'.")
-
-        col_edit1, col_edit2, col_edit3 = st.columns(3)
-
-        with col_edit1:
-            if st.button("Más firme"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más firme, manteniendo tono profesional y jurídico."
-
-        with col_edit2:
-            if st.button("Más breve"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más breve y directo, sin perder contenido jurídico importante."
-
-        with col_edit3:
-            if st.button("Más formal"):
-                st.session_state["instruccion_edicion_cd"] = "Hacé el texto más formal y técnico, manteniendo claridad."
-
         instruccion_edicion = st.text_input(
             "Pedile cambios a la IA",
-            value=st.session_state.get("instruccion_edicion_cd", ""),
-            placeholder="Ej: agregá reserva de daños, sacá la propuesta de acuerdo, hacelo más técnico."
+            value=st.session_state.get("instruccion_edicion_respuesta_cd", ""),
+            placeholder="Ej: hacelo más firme, más corto, agregá reserva de daños."
         )
 
-        if st.button("Aplicar cambios con IA"):
+        if st.button("Aplicar cambios con IA", key="editar_respuesta_cd_ia"):
             if not instruccion_edicion.strip():
                 st.warning("Escribí una instrucción para editar el texto.")
             else:
@@ -1298,6 +1295,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
                     st.error(texto_editado)
                 else:
                     st.session_state["ultimo_texto_respuesta_cd"] = texto_editado
+                    st.session_state["sync_editor_respuesta_cd"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Respuesta Carta Documento",
@@ -1313,12 +1311,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
             "Respuesta_Carta_Documento_Estudio_Peire"
         )
 
-        guardar_en_historial(
-            tipo="Respuesta Carta Documento",
-            titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
-            contenido=st.session_state["ultimo_texto_respuesta_cd"]
-        )
-
 # =========================================================
 # 3) CONTESTACIÓN DE OFICIO
 # =========================================================
@@ -1331,6 +1323,9 @@ elif menu == "Contestación de Oficio":
     with col_b:
         if st.button("Nueva contestación", key="reset_oficio"):
             limpiar_resultado("ultimo_oficio")
+            limpiar_resultado("editor_oficio")
+            limpiar_resultado("sync_editor_oficio")
+            limpiar_resultado("instruccion_edicion_oficio")
             st.rerun()
     
     col1, col2 = st.columns(2)
@@ -1439,20 +1434,29 @@ Devolvé solo el texto final del documento.
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
         st.session_state["ultimo_oficio"] = t
+        st.session_state["sync_editor_oficio"] = True
 
         guardar_en_historial(
             tipo="Contestación de Oficio",
             titulo=f"Oficio - {organismo or 'Sin organismo'}",
-            contenido=st.session_state["ultimo_oficio"]
+            contenido=t
         )
 
     if "ultimo_oficio" in st.session_state:
+
+        if "editor_oficio" not in st.session_state:
+            st.session_state["editor_oficio"] = st.session_state["ultimo_oficio"]
+
+        if st.session_state.get("sync_editor_oficio", False):
+            st.session_state["editor_oficio"] = st.session_state["ultimo_oficio"]
+            st.session_state["sync_editor_oficio"] = False
+
         st.markdown("### Resultado")
+
         texto_actual_oficio = st.text_area(
             "Texto generado / editable",
-            value=st.session_state["ultimo_oficio"],
             height=420,
-            key="texto_resultado_oficio"
+            key="editor_oficio"
         )
 
         st.session_state["ultimo_oficio"] = texto_actual_oficio
@@ -1476,11 +1480,12 @@ Devolvé solo el texto final del documento.
                     st.error(texto_editado_oficio)
                 else:
                     st.session_state["ultimo_oficio"] = texto_editado_oficio
+                    st.session_state["sync_editor_oficio"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Contestación de Oficio",
                         titulo=f"Edición IA - {organismo or 'Sin organismo'}",
-                        contenido=st.session_state["ultimo_oficio"]
+                        contenido=texto_editado_oficio
                     )
 
                     st.success("Texto actualizado con IA.")
@@ -1503,6 +1508,9 @@ elif menu == "Mailing (Modo Agente)":
     with col_b:
         if st.button("Nuevo mailing", key="reset_mail"):
             limpiar_resultado("ultimo_mail")
+            limpiar_resultado("editor_mail")
+            limpiar_resultado("sync_editor_mail")
+            limpiar_resultado("instruccion_edicion_mail")
             st.rerun()
     
     col1, col2, col3 = st.columns(3)
@@ -1635,20 +1643,29 @@ Devolvé solo el texto final del mensaje.
                     t += f"{contacto}\n"
 
         st.session_state["ultimo_mail"] = t
+        st.session_state["sync_editor_mail"] = True
 
         guardar_en_historial(
             tipo="Mailing",
             titulo=f"Mailing - {cliente or 'Sin cliente'}",
-            contenido=st.session_state["ultimo_mail"]
+            contenido=t
         )
 
     if "ultimo_mail" in st.session_state:
+
+        if "editor_mail" not in st.session_state:
+            st.session_state["editor_mail"] = st.session_state["ultimo_mail"]
+
+        if st.session_state.get("sync_editor_mail", False):
+            st.session_state["editor_mail"] = st.session_state["ultimo_mail"]
+            st.session_state["sync_editor_mail"] = False
+
         st.markdown("### Resultado")
+
         texto_actual_mail = st.text_area(
             "Texto generado / editable",
-            value=st.session_state["ultimo_mail"],
             height=320,
-            key="texto_resultado_mail"
+            key="editor_mail"
         )
 
         st.session_state["ultimo_mail"] = texto_actual_mail
@@ -1672,11 +1689,12 @@ Devolvé solo el texto final del mensaje.
                     st.error(texto_editado_mail)
                 else:
                     st.session_state["ultimo_mail"] = texto_editado_mail
+                    st.session_state["sync_editor_mail"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Mailing",
                         titulo=f"Edición IA - {cliente or 'Sin cliente'}",
-                        contenido=st.session_state["ultimo_mail"]
+                        contenido=texto_editado_mail
                     )
 
                     st.success("Texto actualizado con IA.")
@@ -1699,6 +1717,9 @@ elif menu == "Presupuesto":
     with col_b:
         if st.button("Nuevo presupuesto", key="reset_presupuesto"):
             limpiar_resultado("ultimo_presupuesto")
+            limpiar_resultado("editor_presupuesto")
+            limpiar_resultado("sync_editor_presupuesto")
+            limpiar_resultado("instruccion_edicion_presupuesto")
             st.rerun()
     
     col1, col2 = st.columns(2)
@@ -1821,20 +1842,29 @@ Devolvé solo el texto final del presupuesto.
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
         st.session_state["ultimo_presupuesto"] = t
+        st.session_state["sync_editor_presupuesto"] = True
 
         guardar_en_historial(
             tipo="Presupuesto",
             titulo=f"Presupuesto - {cliente or 'Sin cliente'}",
-            contenido=st.session_state["ultimo_presupuesto"]
+            contenido=t
         )
 
     if "ultimo_presupuesto" in st.session_state:
+
+        if "editor_presupuesto" not in st.session_state:
+            st.session_state["editor_presupuesto"] = st.session_state["ultimo_presupuesto"]
+
+        if st.session_state.get("sync_editor_presupuesto", False):
+            st.session_state["editor_presupuesto"] = st.session_state["ultimo_presupuesto"]
+            st.session_state["sync_editor_presupuesto"] = False
+
         st.markdown("### Resultado")
+
         texto_actual_presupuesto = st.text_area(
             "Texto generado / editable",
-            value=st.session_state["ultimo_presupuesto"],
             height=360,
-            key="texto_resultado_presupuesto"
+            key="editor_presupuesto"
         )
 
         st.session_state["ultimo_presupuesto"] = texto_actual_presupuesto
@@ -1843,7 +1873,7 @@ Devolvé solo el texto final del presupuesto.
         instruccion_presupuesto = st.text_input(
             "Pedile cambios a la IA",
             value=st.session_state.get("instruccion_edicion_presupuesto", ""),
-            placeholder="Ej: hacelo más formal, agregá más detalle, resumilo."
+            placeholder="Ej: hacelo más formal, agregá condiciones, resumilo."
         )
 
         if st.button("Aplicar cambios con IA", key="editar_presupuesto_ia"):
@@ -1858,11 +1888,12 @@ Devolvé solo el texto final del presupuesto.
                     st.error(texto_editado_presupuesto)
                 else:
                     st.session_state["ultimo_presupuesto"] = texto_editado_presupuesto
+                    st.session_state["sync_editor_presupuesto"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Presupuesto",
                         titulo=f"Edición IA - {cliente or 'Sin cliente'}",
-                        contenido=st.session_state["ultimo_presupuesto"]
+                        contenido=texto_editado_presupuesto
                     )
 
                     st.success("Texto actualizado con IA.")
@@ -1885,6 +1916,9 @@ elif menu == "Análisis de Documento":
     with col_b:
         if st.button("Nuevo análisis", key="reset_analisis"):
             limpiar_resultado("ultimo_analisis_documento")
+            limpiar_resultado("editor_analisis_documento")
+            limpiar_resultado("sync_editor_analisis_documento")
+            limpiar_resultado("instruccion_edicion_analisis_documento")
             st.rerun()
     
     st.write("Subí un documento recibido por el estudio para ordenarlo, resumirlo y preparar una respuesta.")
@@ -1944,12 +1978,20 @@ elif menu == "Análisis de Documento":
     col1, col2 = st.columns(2)
 
     if "ultimo_analisis_documento" in st.session_state:
+
+        if "editor_analisis_documento" not in st.session_state:
+            st.session_state["editor_analisis_documento"] = st.session_state["ultimo_analisis_documento"]
+
+        if st.session_state.get("sync_editor_analisis_documento", False):
+            st.session_state["editor_analisis_documento"] = st.session_state["ultimo_analisis_documento"]
+            st.session_state["sync_editor_analisis_documento"] = False
+
         st.markdown("### Resultado del análisis")
+
         texto_actual_analisis = st.text_area(
             "Análisis generado / editable",
-            value=st.session_state["ultimo_analisis_documento"],
             height=420,
-            key="texto_resultado_analisis"
+            key="editor_analisis_documento"
         )
 
         st.session_state["ultimo_analisis_documento"] = texto_actual_analisis
@@ -1957,11 +1999,11 @@ elif menu == "Análisis de Documento":
         st.markdown("### Editar análisis con IA")
         instruccion_edicion_analisis = st.text_input(
             "Pedile cambios a la IA",
-            value=st.session_state.get("instruccion_edicion_analisis", ""),
+            value=st.session_state.get("instruccion_edicion_analisis_documento", ""),
             placeholder="Ej: resumilo más, agregá riesgos, proponé una estrategia más concreta."
         )
 
-        if st.button("Aplicar cambios al análisis con IA"):
+        if st.button("Aplicar cambios al análisis con IA", key="editar_analisis_ia"):
             if not instruccion_edicion_analisis.strip():
                 st.warning("Escribí una instrucción para editar el análisis.")
             else:
@@ -1976,6 +2018,7 @@ elif menu == "Análisis de Documento":
                     st.error(texto_editado_analisis)
                 else:
                     st.session_state["ultimo_analisis_documento"] = texto_editado_analisis
+                    st.session_state["sync_editor_analisis_documento"] = True
 
                     guardar_en_historial(
                         tipo="Edición IA - Análisis de Documento",
@@ -1990,98 +2033,6 @@ elif menu == "Análisis de Documento":
             st.session_state["ultimo_analisis_documento"],
             "Analisis_Documento_Estudio_Peire"
         )
-    
-    with col1:
-        if st.button("Preparar borrador de respuesta"):
-            texto_base = contenido_extraido if contenido_extraido else resumen
-
-            if usar_ia_analisis and texto_base.strip():
-                prompt_sistema = (
-                    "Sos asistente jurídico del Estudio Peire. "
-                    "Analizás documentos jurídicos en español argentino. "
-                    "No inventes hechos ni normas. "
-                    "Ordenás la información con claridad profesional."
-                )
-
-                prompt_usuario = f"""
-Analizá el siguiente documento y prepará un borrador interno para el estudio.
-
-Tipo de documento: {tipo_documento}
-Remitente: {remitente}
-Destinatario: {destinatario}
-Fecha: {fecha_doc}
-Monto: {monto}
-Objeto: {objeto}
-
-Observaciones del estudio:
-{observaciones}
-
-Resumen manual:
-{resumen}
-
-Texto del documento:
-{texto_base}
-
-Devolvé:
-1. Resumen ejecutivo
-2. Puntos clave
-3. Riesgos o alertas
-4. Estrategia sugerida
-5. Próximo paso recomendado
-"""
-                borrador = generar_texto_con_ia(prompt_sistema, prompt_usuario)
-
-                if not borrador:
-                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
-                    st.stop()
-
-                if str(borrador).startswith("ERROR_IA:"):
-                    st.error(borrador)
-                    st.stop()
-            else:
-                borrador = f"""
-ANÁLISIS DEL DOCUMENTO
-
-Tipo de documento: {tipo_documento}
-Archivo cargado: {uploaded_file.name if uploaded_file else "[Sin archivo]"}
-Remitente: {remitente or "[No informado]"}
-Destinatario: {destinatario or "[No informado]"}
-Fecha: {fecha_doc or "[No informada]"}
-Monto: {monto or "[No informado]"}
-Objeto: {objeto or "[No informado]"}
-
-Observaciones del estudio:
-{observaciones or "[Sin observaciones]"}
-
-Resumen / puntos importantes:
-{resumen or "[Sin resumen]"}
-
-Texto extraído del archivo:
-{texto_base or "[Sin texto extraído]"}
-
-SUGERENCIA DE PRÓXIMO PASO:
-Se recomienda revisar el contenido del documento y utilizar la información arriba consignada para preparar la respuesta correspondiente dentro del módulo "Respuesta Carta Documento" o "Contestación de Oficio", según corresponda.
-"""
-
-            st.session_state["analisis_para_respuesta"] = {
-                "texto_recibido": texto_base,
-                "hechos_reales": observaciones,
-                "remitente": remitente,
-                "destinatario": destinatario,
-                "fecha_doc": fecha_doc,
-                "monto": monto,
-                "objeto": objeto,
-                "tipo_documento": tipo_documento,
-                "resumen": resumen,
-            }
-
-            st.session_state["ultimo_analisis_documento"] = borrador
-
-            guardar_en_historial(
-                tipo="Análisis de Documento",
-                titulo=f"Análisis - {uploaded_file.name if uploaded_file else 'Sin archivo'}",
-                contenido=borrador
-            )
 
 # =========================================================
 # 7) HISTORIAL
