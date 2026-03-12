@@ -787,22 +787,17 @@ elif menu == "Diagnóstico Inteligente":
             st.session_state["ultimo_diagnostico"],
             "Diagnostico_Inteligente_Estudio_Peire"
         )
-
 # =========================================================
-# CARTA DOCUMENTO
+# 1) CARTA DOCUMENTO
 # =========================================================
-
 elif menu == "Carta Documento":
+    st.header("📄 Carta Documento")
 
-    st.header("📄 Crear Carta Documento")
-
-    col_a, col_b = st.columns([1,1])
-
+    col_a, col_b = st.columns([1, 1])
     with col_a:
-        st.button("← Volver al panel principal", on_click=volver_al_dashboard)
-
+        st.button("← Volver al panel principal", on_click=volver_al_dashboard, key="volver_carta_doc")
     with col_b:
-        if st.button("Nuevo documento", key="reset_carta_doc"):
+        if st.button("Nuevo documento", key="reset_carta"):
             limpiar_resultado("ultimo_texto_carta_documento")
             limpiar_resultado("editor_carta_documento")
             limpiar_resultado("sync_editor_carta_documento")
@@ -810,73 +805,88 @@ elif menu == "Carta Documento":
             st.rerun()
 
     col1, col2 = st.columns(2)
-
     with col1:
-        remitente = st.text_input("Remitente / Cliente")
-        dom_remitente = st.text_input("Domicilio remitente")
-        destinatario = st.text_input("Destinatario")
-        dom_destinatario = st.text_input("Domicilio destinatario")
-
+        remitente = st.text_input("Remitente / Cliente", placeholder="Ej: Carlos Raúl Fernández")
+        dom_remitente = st.text_input("Domicilio remitente", placeholder="Ej: Av. Santa Fe 2450, CABA")
     with col2:
-        jurisd = st.text_input("Lugar / Jurisdicción")
-        fecha = st.text_input("Fecha")
-        plazo = st.selectbox("Plazo intimado", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
-        monto = st.text_input("Monto (si aplica)")
+        destinatario = st.text_input("Destinatario", placeholder="Ej: Juan Pérez")
+        dom_destinatario = st.text_input("Domicilio destinatario", placeholder="Ej: Av. Rivadavia 1234, CABA")
 
-    referencia = st.text_input("Referencia / Contrato / Expediente")
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        jurisd = st.text_input("Jurisdicción / Ciudad", value="CABA", placeholder="Ej: CABA")
+    with col4:
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"), placeholder="Ej: 06/03/2026")
+    with col5:
+        plazo = st.selectbox("Plazo que se intima", ["24 hs", "48 hs", "72 hs", "5 días", "10 días", "15 días"])
+
+    tipo = st.selectbox(
+        "Tipo",
+        [
+            "Intimación de pago (deuda)",
+            "Intimación por incumplimiento (cumplimiento de obligación)",
+            "Rescisión / Resolución contractual",
+            "Cese de conducta / daños",
+            "Laboral (intimación / regularización)",
+            "Otra (personalizada)",
+        ],
+    )
+
+    col6, col7 = st.columns(2)
+    with col6:
+        monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000")
+    with col7:
+        referencia = st.text_input("Referencia/Contrato/Expte (opcional)", placeholder="Ej: Contrato 01/12/2025")
 
     hechos = st.text_area(
-        "Hechos / antecedentes",
-        height=120
+        "Hechos / Antecedentes (cronología breve)",
+        height=120,
+        placeholder="Describí brevemente los hechos en orden cronológico."
     )
 
     pedido_concreto = st.text_area(
-        "Pedido concreto",
-        height=100
+        "Pedido concreto (qué exigís que haga la otra parte)",
+        height=90,
+        placeholder="Ej: Intimo a abonar la suma adeudada dentro del plazo indicado."
     )
 
-    col3, col4 = st.columns(2)
-
-    with col3:
-        tipo = st.selectbox(
-            "Tipo de carta",
-            ["Intimación", "Reclamo", "Notificación", "Otro"]
-        )
-
-    with col4:
-        tono = st.selectbox(
-            "Tono",
-            ["Formal", "Neutral", "Firme"]
-        )
-
-    mencionar_pruebas = st.checkbox("Mencionar documentación/pruebas")
-    incluir_reserva = st.checkbox("Reserva de acciones y derechos")
-    incluir_costas = st.checkbox("Apercibimiento de gastos y costas")
-    abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo")
-
-    firmante = st.text_input("Firmante")
-    matricula = st.text_input("Matrícula")
-    estudio = st.text_input("Estudio")
-    contacto = st.text_input("Contacto")
+    col8, col9, col10, col11 = st.columns(4)
+    with col8:
+        mencionar_pruebas = st.checkbox("Mencionar documentación/pruebas", value=True)
+    with col9:
+        incluir_reserva = st.checkbox("Reserva de acciones y derechos", value=True)
+    with col10:
+        incluir_costas = st.checkbox("Apercibimiento de gastos y costas", value=True)
+    with col11:
+        abrir_acuerdo = st.checkbox("Abrir posibilidad de acuerdo", value=False)
 
     usar_ia = st.checkbox("Usar IA para redactar la carta", value=True)
 
-    if st.button("Generar Carta Documento"):
+    texto_personalizado = ""
+    if tipo == "Otra (personalizada)":
+        texto_personalizado = st.text_area(
+            "Texto base personalizado (1–4 líneas)",
+            height=80,
+            placeholder="Escribí una base personalizada para esta carta documento."
+        )
 
-        if not usar_ia:
-            st.warning("Activá la opción de IA para generar el documento.")
-        else:
+    if st.button("Generar Carta Documento", key="generar_carta_doc"):
+        limpiar_resultado("ultimo_texto_carta_documento")
 
-            prompt_sistema = """
-Sos un abogado experto en derecho civil y comercial argentino.
-Redactás documentos legales claros, formales y técnicamente correctos.
-"""
+        if usar_ia:
+            prompt_sistema = (
+                "Sos asistente jurídico del Estudio Peire. "
+                "Redactás CARTAS DOCUMENTO en español jurídico argentino, con tono profesional y prudente. "
+                "No inventes hechos, normas ni jurisprudencia. "
+                "No cites artículos si no fueron dados por el usuario. "
+                "Devolvé directamente el texto final del documento listo para revisar por un abogado."
+            )
 
             prompt_usuario = f"""
-Redactá una CARTA DOCUMENTO en español jurídico formal.
+Redactá una CARTA DOCUMENTO en español jurídico argentino.
 
 Tipo: {tipo}
-Tono: {tono}
+Tono: formal
 Lugar/Jurisdicción: {jurisd}
 Fecha: {fecha}
 Plazo intimado: {plazo}
@@ -896,11 +906,13 @@ Hechos / antecedentes:
 Pedido concreto:
 {pedido_concreto}
 
-Incluir:
 Mencionar documentación/pruebas: {mencionar_pruebas}
 Reserva de acciones y derechos: {incluir_reserva}
 Apercibimiento de gastos y costas: {incluir_costas}
 Abrir posibilidad de acuerdo: {abrir_acuerdo}
+
+Texto base personalizado:
+{texto_personalizado}
 
 Firmante: {firmante}
 Matrícula: {matricula}
@@ -909,30 +921,135 @@ Contacto: {contacto}
 
 Devolvé solo el texto final del documento, sin explicaciones adicionales.
 """
+            t = generar_texto_con_ia(prompt_sistema, prompt_usuario)
 
-            texto_generado = generar_texto_con_ia(prompt_sistema, prompt_usuario)
+            if not t:
+                st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                st.stop()
 
-            if texto_generado:
-                st.session_state["ultimo_texto_carta_documento"] = texto_generado
-                st.session_state["editor_carta_documento"] = texto_generado
-                st.session_state["sync_editor_carta_documento"] = texto_generado
-                st.rerun()
+            if str(t).startswith("ERROR_IA:"):
+                st.error(t)
+                st.stop()
 
-    if "editor_carta_documento" in st.session_state:
+            if incluir_reserva and "reserva" not in t.lower():
+                t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
 
-        st.subheader("Resultado generado / editable")
+            if incluir_costas and "gastos y costas" not in t.lower():
+                t += "\n\nTodo ello con más intereses, gastos y costas."
 
-        texto_editado = st.text_area(
-            "Documento",
-            value=st.session_state["editor_carta_documento"],
-            height=300,
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        else:
+            t = "CARTA DOCUMENTO\n"
+            t += f"Lugar/Jurisdicción: {safe(jurisd, '[Lugar]')}\n"
+            t += f"Fecha: {safe(fecha, '[Fecha]')}\n"
+            if referencia.strip():
+                t += f"Referencia: {referencia.strip()}\n"
+            t += "\n"
+            t += f"Remitente: {safe(remitente, '[Remitente]')}\n"
+            t += f"Domicilio: {safe(dom_remitente, '[Domicilio remitente]')}\n"
+            t += f"Destinatario: {safe(destinatario, '[Destinatario]')}\n"
+            t += f"Domicilio: {safe(dom_destinatario, '[Domicilio destinatario]')}\n"
+
+            t += "\n\nPor la presente, "
+
+            if tipo == "Intimación de pago (deuda)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} abone la suma de {safe(monto, '[Monto]')} en concepto de deuda, {linea_amenaza('Firme')}"
+            elif tipo == "Intimación por incumplimiento (cumplimiento de obligación)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} cumpla íntegramente con lo debido, {linea_amenaza('Firme')}"
+            elif tipo == "Rescisión / Resolución contractual":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice su situación contractual, bajo apercibimiento de considerar resuelto el vínculo y reclamar daños, {linea_amenaza('Firme')}"
+            elif tipo == "Cese de conducta / daños":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} cese la conducta lesiva denunciada y adopte las medidas necesarias, {linea_amenaza('Firme')}"
+            elif tipo == "Laboral (intimación / regularización)":
+                t += f"INTIMO a Ud. para que en el plazo de {plazo} regularice la situación denunciada, {linea_amenaza('Firme')}"
+            else:
+                base = safe(texto_personalizado, "INTIMO a Ud. para que en el plazo indicado cumpla con lo requerido,")
+                t += f"{base} {linea_amenaza('Firme')}"
+
+            t += "\n\nHechos/antecedentes:\n"
+            t += safe(hechos, "[Describir hechos en forma breve y cronológica]")
+
+            if pedido_concreto.strip():
+                t += "\n\nPedido concreto:\n"
+                t += pedido_concreto.strip()
+
+            if mencionar_pruebas:
+                t += "\n\nSe deja constancia que existen antecedentes y/o documentación respaldatoria que acreditan lo aquí expuesto."
+            if abrir_acuerdo:
+                t += "\n\nSin perjuicio de lo anterior, se deja abierta la posibilidad de arribar a una solución consensuada en términos razonables."
+            if incluir_costas:
+                t += "\n\nTodo ello con más intereses, gastos y costas."
+            if incluir_reserva:
+                t += "\n\nSe reserva expresamente el ejercicio de acciones y derechos."
+
+            t += "\n\nQueda Ud. debidamente notificado."
+            t += bloque_firma(firmante, matricula, estudio, contacto)
+
+        st.session_state["ultimo_texto_carta_documento"] = t
+        st.session_state["sync_editor_carta_documento"] = True
+
+        guardar_en_historial(
+            tipo="Carta Documento",
+            titulo=f"Carta Documento - {destinatario or 'Sin destinatario'}",
+            contenido=t
+        )
+
+        st.rerun()
+
+    if "ultimo_texto_carta_documento" in st.session_state:
+
+        if "editor_carta_documento" not in st.session_state:
+            st.session_state["editor_carta_documento"] = st.session_state["ultimo_texto_carta_documento"]
+
+        if st.session_state.get("sync_editor_carta_documento", False):
+            st.session_state["editor_carta_documento"] = st.session_state["ultimo_texto_carta_documento"]
+            st.session_state["sync_editor_carta_documento"] = False
+
+        st.markdown("### Resultado")
+
+        texto_actual_cd = st.text_area(
+            "Texto generado / editable",
+            height=420,
             key="editor_carta_documento"
         )
 
-        st.session_state["editor_carta_documento"] = texto_editado
+        st.session_state["ultimo_texto_carta_documento"] = texto_actual_cd
 
-        if st.button("Descargar en Word"):
-            descargar_word(texto_editado, "carta_documento.docx")
+        st.markdown("### Editar con IA")
+        instruccion_edicion_cd = st.text_input(
+            "Pedile cambios a la IA",
+            value=st.session_state.get("instruccion_edicion_carta_documento", ""),
+            placeholder="Ej: hacelo más firme, más técnico, más breve."
+        )
+
+        if st.button("Aplicar cambios con IA", key="editar_carta_ia"):
+            if not instruccion_edicion_cd.strip():
+                st.warning("Escribí una instrucción para editar el texto.")
+            else:
+                texto_editado_cd = editar_texto_con_ia(texto_actual_cd, instruccion_edicion_cd)
+
+                if not texto_editado_cd:
+                    st.error("No se encontró OPENAI_API_KEY en Secrets.")
+                elif str(texto_editado_cd).startswith("ERROR_IA:"):
+                    st.error(texto_editado_cd)
+                else:
+                    st.session_state["ultimo_texto_carta_documento"] = texto_editado_cd
+                    st.session_state["sync_editor_carta_documento"] = True
+
+                    guardar_en_historial(
+                        tipo="Edición IA - Carta Documento",
+                        titulo=f"Edición IA - {destinatario or 'Sin destinatario'}",
+                        contenido=texto_editado_cd
+                    )
+
+                    st.success("Texto actualizado con IA.")
+                    st.rerun()
+
+        exportar_word(
+            st.session_state["ultimo_texto_carta_documento"],
+            "Carta_Documento_Estudio_Peire"
+        )
 
 # =========================================================
 # 2) RESPUESTA A CARTA DOCUMENTO
