@@ -1341,6 +1341,9 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 elif menu == "Respuesta Carta Documento":
     st.header("✉️ Respuesta a Carta Documento")
 
+    # ---------------------------
+    # Estado inicial
+    # ---------------------------
     if "archivo_respuesta_procesado" not in st.session_state:
         st.session_state["archivo_respuesta_procesado"] = ""
 
@@ -1371,23 +1374,17 @@ elif menu == "Respuesta Carta Documento":
     if "hechos_reales_respuesta" not in st.session_state:
         st.session_state["hechos_reales_respuesta"] = ""
 
-# temporales
-    if "datos_detectados_tmp_respuesta" not in st.session_state:
-        st.session_state["datos_detectados_tmp_respuesta"] = {}
-
-    if "texto_detectado_tmp_respuesta" not in st.session_state:
-        st.session_state["texto_detectado_tmp_respuesta"] = ""
-    
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+
     with col_b:
         if st.button("Nueva respuesta", key="reset_respuesta_cd"):
             limpiar_resultado("ultimo_texto_respuesta_cd")
             limpiar_resultado("editor_respuesta_cd")
             limpiar_resultado("sync_editor_respuesta_cd")
             limpiar_resultado("instruccion_edicion_respuesta_cd")
-            
+
             st.session_state["archivo_respuesta_procesado"] = ""
             st.session_state["datos_respuesta_cargados"] = False
             st.session_state["remitente_detectado"] = ""
@@ -1398,11 +1395,17 @@ elif menu == "Respuesta Carta Documento":
             st.session_state["objeto_detectado"] = ""
             st.session_state["texto_recibido_respuesta"] = ""
             st.session_state["hechos_reales_respuesta"] = ""
-            
+
+            if "analisis_para_respuesta" in st.session_state:
+                del st.session_state["analisis_para_respuesta"]
+
             st.rerun()
-    
+
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
 
+    # ---------------------------
+    # Si viene desde Análisis de Documento
+    # ---------------------------
     if datos_analisis:
         st.success("Se cargó información desde 'Análisis de Documento'.")
 
@@ -1429,22 +1432,104 @@ elif menu == "Respuesta Carta Documento":
 
         if not st.session_state["hechos_reales_respuesta"]:
             st.session_state["hechos_reales_respuesta"] = datos_analisis.get("hechos_reales", "")
-    
-    if st.button("🧹 Limpiar datos cargados del análisis"):
-        if "analisis_para_respuesta" in st.session_state:
-            del st.session_state["analisis_para_respuesta"]
 
-        st.session_state["remitente_detectado"] = ""
-        st.session_state["destinatario_detectado"] = ""
-        st.session_state["tipo_documento_detectado"] = ""
-        st.session_state["fecha_detectada"] = ""
-        st.session_state["monto_detectado"] = ""
-        st.session_state["objeto_detectado"] = ""
-        st.session_state["texto_recibido_respuesta"] = ""
-        st.session_state["hechos_reales_respuesta"] = ""
+        if st.button("🧹 Limpiar datos cargados del análisis"):
+            if "analisis_para_respuesta" in st.session_state:
+                del st.session_state["analisis_para_respuesta"]
 
-        st.rerun()
+            st.session_state["remitente_detectado"] = ""
+            st.session_state["destinatario_detectado"] = ""
+            st.session_state["tipo_documento_detectado"] = ""
+            st.session_state["fecha_detectada"] = ""
+            st.session_state["monto_detectado"] = ""
+            st.session_state["objeto_detectado"] = ""
+            st.session_state["texto_recibido_respuesta"] = ""
+            st.session_state["hechos_reales_respuesta"] = ""
 
+            st.rerun()
+
+    # ---------------------------
+    # Archivo primero
+    # ---------------------------
+    archivo_respuesta = st.file_uploader(
+        "Subir documento recibido (opcional)",
+        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+        key="archivo_respuesta_cd"
+    )
+
+    texto_archivo_respuesta = ""
+
+    if archivo_respuesta is not None:
+        nombre_archivo_actual = archivo_respuesta.name
+
+        with st.spinner("Procesando archivo..."):
+            texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
+
+        if texto_archivo_respuesta.startswith("ERROR_"):
+            st.error(texto_archivo_respuesta)
+            texto_archivo_respuesta = ""
+
+        elif texto_archivo_respuesta.strip():
+            st.success(f"Archivo cargado: {archivo_respuesta.name}")
+
+            st.text_area(
+                "Texto detectado del archivo",
+                value=texto_archivo_respuesta,
+                height=180,
+                key="texto_detectado_respuesta"
+            )
+
+            if (
+                st.session_state["archivo_respuesta_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_respuesta_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados_respuesta = extraer_datos_clave_con_ia(texto_archivo_respuesta)
+
+                if isinstance(datos_detectados_respuesta, dict) and "error" in datos_detectados_respuesta:
+                    st.error(datos_detectados_respuesta["error"])
+
+                elif isinstance(datos_detectados_respuesta, dict):
+                    st.subheader("Datos detectados automáticamente")
+
+                    st.markdown(f"""
+**Tipo sugerido:** {datos_detectados_respuesta.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados_respuesta.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados_respuesta.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados_respuesta.get("fecha", "No detectado")}  
+**Monto:** {datos_detectados_respuesta.get("monto", "No detectado")}  
+**Objeto:** {datos_detectados_respuesta.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados_respuesta.get("resumen", "No detectado")}
+""")
+
+                    # Acá sí cargamos directamente porque los widgets todavía no fueron creados
+                    st.session_state["remitente_detectado"] = datos_detectados_respuesta.get("remitente", "")
+                    st.session_state["destinatario_detectado"] = datos_detectados_respuesta.get("destinatario", "")
+                    st.session_state["tipo_documento_detectado"] = datos_detectados_respuesta.get("tipo_documento", "")
+                    st.session_state["fecha_detectada"] = datos_detectados_respuesta.get("fecha", "")
+                    st.session_state["monto_detectado"] = datos_detectados_respuesta.get("monto", "")
+                    st.session_state["objeto_detectado"] = datos_detectados_respuesta.get("objeto", "")
+                    st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
+
+                    st.session_state["archivo_respuesta_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_respuesta_cargados"] = True
+
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
+
+            else:
+                st.info("Datos ya detectados para este archivo.")
+                if texto_archivo_respuesta.strip():
+                    st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
+
+        else:
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
+
+    # ---------------------------
+    # Recién ahora mostramos campos
+    # ---------------------------
     col_ref1, col_ref2 = st.columns(2)
 
     with col_ref1:
@@ -1478,7 +1563,7 @@ elif menu == "Respuesta Carta Documento":
             "Objeto detectado",
             key="objeto_detectado"
         )
-    
+
     col1, col2, col3 = st.columns(3)
     with col1:
         postura = st.selectbox("Postura", ["Negar deuda/hechos", "Aceptar parcialmente", "Proponer acuerdo", "Rechazar e intimar"])
@@ -1486,98 +1571,6 @@ elif menu == "Respuesta Carta Documento":
         tono = st.selectbox("Tono", ["Neutral", "Firme", "Muy firme"])
     with col3:
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
-
-    archivo_respuesta = st.file_uploader(
-        "Subir documento recibido (opcional)",
-        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
-        key="archivo_respuesta_cd"
-    )
-
-    texto_archivo_respuesta = ""
-    datos_detectados_respuesta = {}
-
-    if archivo_respuesta is not None:
-        nombre_archivo_actual = archivo_respuesta.name
-
-        with st.spinner("Procesando archivo..."):
-            texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
-
-        if texto_archivo_respuesta.startswith("ERROR_"):
-            st.error(texto_archivo_respuesta)
-            texto_archivo_respuesta = ""
-
-        elif texto_archivo_respuesta.strip():
-            st.success(f"Archivo cargado: {archivo_respuesta.name}")
-
-            st.text_area(
-                "Texto detectado del archivo",
-                value=texto_archivo_respuesta,
-                height=180,
-                key="texto_detectado_respuesta"
-            )
-
-            if (
-                st.session_state["archivo_respuesta_procesado"] != nombre_archivo_actual
-                or not st.session_state["datos_respuesta_cargados"]
-            ):
-                with st.spinner("Extrayendo datos clave..."):
-                    datos_detectados_respuesta = extraer_datos_clave_con_ia(texto_archivo_respuesta)
-
-                if isinstance(datos_detectados_respuesta, dict) and "error" in datos_detectados_respuesta:
-                    st.error(datos_detectados_respuesta["error"])
-                    datos_detectados_respuesta = {}
-
-                elif isinstance(datos_detectados_respuesta, dict):
-                    st.subheader("Datos detectados automáticamente")
-
-                    st.markdown(f"""
-
-            
-**Tipo sugerido:** {datos_detectados_respuesta.get("tipo_documento", "No detectado")}  
-**Remitente:** {datos_detectados_respuesta.get("remitente", "No detectado")}  
-**Destinatario:** {datos_detectados_respuesta.get("destinatario", "No detectado")}  
-**Fecha:** {datos_detectados_respuesta.get("fecha", "No detectado")}  
-**Monto:** {datos_detectados_respuesta.get("monto", "No detectado")}  
-**Objeto:** {datos_detectados_respuesta.get("objeto", "No detectado")}  
-**Resumen:** {datos_detectados_respuesta.get("resumen", "No detectado")}
-""")
-                    # guardamos temporalmente (NO en los campos reales)
-                    st.session_state["datos_detectados_tmp_respuesta"] = datos_detectados_respuesta
-                    st.session_state["texto_detectado_tmp_respuesta"] = texto_archivo_respuesta
-                    st.session_state["archivo_respuesta_procesado"] = nombre_archivo_actual
-                    st.session_state["datos_respuesta_cargados"] = True
-
-# 👇 BOTÓN NUEVO (ACÁ VA)
-                    if st.button("Usar datos detectados en el formulario", key="usar_datos_detectados_respuesta"):
-                        tmp = st.session_state.get("datos_detectados_tmp_respuesta", {})
-
-                        st.session_state["remitente_detectado"] = tmp.get("remitente", "")
-                        st.session_state["destinatario_detectado"] = tmp.get("destinatario", "")
-                        st.session_state["tipo_documento_detectado"] = tmp.get("tipo_documento", "")
-                        st.session_state["fecha_detectada"] = tmp.get("fecha", "")
-                        st.session_state["monto_detectado"] = tmp.get("monto", "")
-                        st.session_state["objeto_detectado"] = tmp.get("objeto", "")
-                        st.session_state["texto_recibido_respuesta"] = st.session_state.get("texto_detectado_tmp_respuesta", "")
-
-                        st.rerun()
-
-                else:
-                    st.warning("No se pudieron estructurar los datos detectados.")
-                    datos_detectados_respuesta = {}
-
-            else:
-                st.info("Datos ya detectados para este archivo.")
-
-        else:
-            st.warning("No se pudo extraer texto del archivo o está vacío.")
-    
-    if texto_archivo_respuesta.strip():
-        st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
-    elif datos_analisis.get("texto_recibido") and not st.session_state["texto_recibido_respuesta"]:
-        st.session_state["texto_recibido_respuesta"] = datos_analisis.get("texto_recibido", "")
-
-    if datos_analisis.get("hechos_reales") and not st.session_state["hechos_reales_respuesta"]:
-        st.session_state["hechos_reales_respuesta"] = datos_analisis.get("hechos_reales", "")
 
     texto_recibido = st.text_area(
         "Texto recibido (pegar o editar)",
@@ -1614,8 +1607,9 @@ elif menu == "Respuesta Carta Documento":
         )
 
     if st.button("Generar Respuesta"):
-        
-        limpiar_resultado("ultimo_texto_respuesta_cd")    
+
+        limpiar_resultado("ultimo_texto_respuesta_cd")
+
         if usar_ia:
             prompt_sistema = (
                 "Sos asistente jurídico del Estudio Peire. "
@@ -1631,6 +1625,13 @@ Redactá una RESPUESTA A CARTA DOCUMENTO en español jurídico argentino.
 Postura: {postura}
 Tono: {tono}
 Plazo de intimación si corresponde: {plazo_intimacion}
+
+Tipo de documento detectado: {tipo_documento}
+Remitente detectado: {remitente}
+Destinatario detectado: {destinatario}
+Fecha detectada: {fecha_doc}
+Monto detectado: {monto}
+Objeto detectado: {objeto}
 
 Texto recibido:
 {texto_recibido}
@@ -1718,7 +1719,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 
         guardar_en_historial(
             tipo="Respuesta Carta Documento",
-            titulo=f"Respuesta CD - {datos_analisis.get('remitente', 'Sin remitente')}",
+            titulo=f"Respuesta CD - {remitente or 'Sin remitente'}",
             contenido=t
         )
 
@@ -1764,7 +1765,7 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 
                     guardar_en_historial(
                         tipo="Edición IA - Respuesta Carta Documento",
-                        titulo=f"Edición IA - {datos_analisis.get('remitente', 'Sin remitente')}",
+                        titulo=f"Edición IA - {remitente or 'Sin remitente'}",
                         contenido=texto_editado
                     )
 
