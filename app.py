@@ -863,6 +863,27 @@ elif menu == "Diagnóstico Inteligente":
         placeholder="Ej: llegó hoy, parece reclamo por alquiler, cliente dice que no corresponde, etc."
     )
 
+    if "archivo_diag_procesado" not in st.session_state:
+        st.session_state["archivo_diag_procesado"] = ""
+
+    if "datos_diag_cargados" not in st.session_state:
+        st.session_state["datos_diag_cargados"] = False
+
+    if "remitente_diag" not in st.session_state:
+        st.session_state["remitente_diag"] = ""
+
+    if "destinatario_diag" not in st.session_state:
+        st.session_state["destinatario_diag"] = ""
+
+    if "fecha_diag" not in st.session_state:
+        st.session_state["fecha_diag"] = ""
+
+    if "monto_diag" not in st.session_state:
+        st.session_state["monto_diag"] = ""
+
+    if "objeto_diag" not in st.session_state:
+        st.session_state["objeto_diag"] = ""
+
     texto_diagnostico = ""
     datos_detectados_diag = {}
 
