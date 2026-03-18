@@ -2245,7 +2245,6 @@ elif menu == "Análisis de Documento":
                 key="texto_detectado_analisis"
             )
 
-        # Solo detectar datos si el archivo todavía no fue procesado
             if (
                 st.session_state["archivo_analisis_procesado"] != nombre_archivo_actual
                 or not st.session_state["datos_analisis_cargados"]
@@ -2270,31 +2269,31 @@ elif menu == "Análisis de Documento":
 **Resumen:** {datos_detectados.get("resumen", "No detectado")}
 """)
 
-                st.session_state["remitente_analisis"] = datos_detectados.get("remitente", "")
-                st.session_state["destinatario_analisis"] = datos_detectados.get("destinatario", "")
-                st.session_state["fecha_doc_analisis"] = datos_detectados.get("fecha", "")
-                st.session_state["monto_analisis"] = datos_detectados.get("monto", "")
-                st.session_state["objeto_analisis"] = datos_detectados.get("objeto", "")
-                st.session_state["resumen_analisis_manual"] = datos_detectados.get("resumen", "")
+                    st.session_state["remitente_analisis"] = datos_detectados.get("remitente", "")
+                    st.session_state["destinatario_analisis"] = datos_detectados.get("destinatario", "")
+                    st.session_state["fecha_doc_analisis"] = datos_detectados.get("fecha", "")
+                    st.session_state["monto_analisis"] = datos_detectados.get("monto", "")
+                    st.session_state["objeto_analisis"] = datos_detectados.get("objeto", "")
+                    st.session_state["resumen_analisis_manual"] = datos_detectados.get("resumen", "")
 
-                tipo_detectado = datos_detectados.get("tipo_documento", "")
-                if tipo_detectado:
-                    st.info(f"Tipo sugerido por IA: {tipo_detectado}")
+                    tipo_detectado = datos_detectados.get("tipo_documento", "")
+                    if tipo_detectado:
+                        st.info(f"Tipo sugerido por IA: {tipo_detectado}")
 
-                st.session_state["archivo_analisis_procesado"] = nombre_archivo_actual
-                st.session_state["datos_analisis_cargados"] = True
+                    st.session_state["archivo_analisis_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_analisis_cargados"] = True
 
-                st.rerun()
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
+                    datos_detectados = {}
 
             else:
-                st.warning("No se pudieron estructurar los datos detectados.")
-                datos_detectados = {}
+                st.info("Datos ya detectados para este archivo.")
 
         else:
-            st.info("Datos ya detectados para este archivo.")
-
-    else:
-        st.warning("No se pudo extraer texto del archivo o está vacío.")
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
 
     st.subheader("Datos clave del documento")
 
