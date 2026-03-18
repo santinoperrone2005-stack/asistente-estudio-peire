@@ -864,8 +864,11 @@ elif menu == "Diagnóstico Inteligente":
     )
 
     texto_diagnostico = ""
+    datos_detectados_diag = {}
 
     if archivo_diag is not None:
+        nombre_archivo_actual = archivo_diag.name
+
         with st.spinner("Procesando archivo..."):
             texto_diagnostico = extraer_texto_archivo(archivo_diag)
 
@@ -883,6 +886,54 @@ elif menu == "Diagnóstico Inteligente":
                 key="texto_detectado_diagnostico"
             )
 
+            # 🔥 DETECCIÓN AUTOMÁTICA (igual que análisis)
+            if (
+                st.session_state["archivo_diag_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_diag_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados_diag = extraer_datos_clave_con_ia(texto_diagnostico)
+
+                if isinstance(datos_detectados_diag, dict) and "error" in datos_detectados_diag:
+                    st.error(datos_detectados_diag["error"])
+                    datos_detectados_diag = {}
+
+                elif isinstance(datos_detectados_diag, dict):
+                    st.subheader("Datos detectados automáticamente")
+
+                    st.markdown(f"""
+**Tipo sugerido:** {datos_detectados_diag.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados_diag.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados_diag.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados_diag.get("fecha", "No detectado")}  
+**Monto:** {datos_detectados_diag.get("monto", "No detectado")}  
+**Objeto:** {datos_detectados_diag.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados_diag.get("resumen", "No detectado")}
+""")
+
+                    # 🔥 AUTOCOMPLETADO
+                    st.session_state["remitente_diag"] = datos_detectados_diag.get("remitente", "")
+                    st.session_state["destinatario_diag"] = datos_detectados_diag.get("destinatario", "")
+                    st.session_state["fecha_diag"] = datos_detectados_diag.get("fecha", "")
+                    st.session_state["monto_diag"] = datos_detectados_diag.get("monto", "")
+                    st.session_state["objeto_diag"] = datos_detectados_diag.get("objeto", "")
+
+                    tipo_detectado = datos_detectados_diag.get("tipo_documento", "")
+                    if tipo_detectado:
+                        st.info(f"Tipo sugerido por IA: {tipo_detectado}")
+
+                    st.session_state["archivo_diag_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_diag_cargados"] = True
+
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
+                    datos_detectados_diag = {}
+
+            else:
+                st.info("Datos ya detectados para este archivo.")
+
         else:
             st.warning("No se pudo extraer texto del archivo o está vacío.")
 
@@ -898,6 +949,18 @@ elif menu == "Diagnóstico Inteligente":
 
         elif texto_diagnostico.strip():
             st.success("Archivo leído correctamente.")
+    
+    st.subheader("Datos del documento")
+
+    remitente = st.text_input("Remitente", key="remitente_diag")
+
+    destinatario = st.text_input("Destinatario", key="destinatario_diag")
+
+    fecha = st.text_input("Fecha", key="fecha_diag")
+
+    monto = st.text_input("Monto", key="monto_diag")
+
+    objeto = st.text_input("Objeto / tema principal", key="objeto_diag")
     
     if st.button("Generar diagnóstico con IA"):
         
