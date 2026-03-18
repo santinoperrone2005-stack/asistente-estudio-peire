@@ -2215,7 +2215,15 @@ elif menu == "Análisis de Documento":
     contenido_extraido = ""
     datos_detectados = {}
 
+    if "archivo_analisis_procesado" not in st.session_state:
+        st.session_state["archivo_analisis_procesado"] = ""
+
+    if "datos_analisis_cargados" not in st.session_state:
+        st.session_state["datos_analisis_cargados"] = False
+    
     if uploaded_file is not None:
+        nombre_archivo_actual = uploaded_file.name
+
         with st.spinner("Procesando archivo..."):
             contenido_extraido = extraer_texto_archivo(uploaded_file)
 
@@ -2233,25 +2241,30 @@ elif menu == "Análisis de Documento":
                 key="texto_detectado_analisis"
             )
 
-            with st.spinner("Extrayendo datos clave..."):
-                datos_detectados = extraer_datos_clave_con_ia(contenido_extraido)
+        # Solo detectar datos si el archivo todavía no fue procesado
+            if (
+                st.session_state["archivo_analisis_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_analisis_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados = extraer_datos_clave_con_ia(contenido_extraido)
 
-            if isinstance(datos_detectados, dict) and "error" in datos_detectados:
-                st.error(datos_detectados["error"])
-                datos_detectados = {}
+                if isinstance(datos_detectados, dict) and "error" in datos_detectados:
+                    st.error(datos_detectados["error"])
+                    datos_detectados = {}
 
-            elif isinstance(datos_detectados, dict):
-                st.subheader("Datos detectados automáticamente")
+                elif isinstance(datos_detectados, dict):
+                    st.subheader("Datos detectados automáticamente")
 
-                st.markdown(f"""
-                **Tipo sugerido:** {datos_detectados.get("tipo_documento", "No detectado")}  
-                **Remitente:** {datos_detectados.get("remitente", "No detectado")}  
-                **Destinatario:** {datos_detectados.get("destinatario", "No detectado")}  
-                **Fecha:** {datos_detectados.get("fecha", "No detectado")}  
-                **Monto:** {datos_detectados.get("monto", "No detectado")}  
-                **Objeto:** {datos_detectados.get("objeto", "No detectado")}  
-                **Resumen:** {datos_detectados.get("resumen", "No detectado")}
-                """)
+                    st.markdown(f"""
+**Tipo sugerido:** {datos_detectados.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados.get("fecha", "No detectado")}  
+**Monto:** {datos_detectados.get("monto", "No detectado")}  
+**Objeto:** {datos_detectados.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados.get("resumen", "No detectado")}
+""")
 
                 st.session_state["remitente_analisis"] = datos_detectados.get("remitente", "")
                 st.session_state["destinatario_analisis"] = datos_detectados.get("destinatario", "")
@@ -2264,6 +2277,9 @@ elif menu == "Análisis de Documento":
                 if tipo_detectado:
                     st.info(f"Tipo sugerido por IA: {tipo_detectado}")
 
+                st.session_state["archivo_analisis_procesado"] = nombre_archivo_actual
+                st.session_state["datos_analisis_cargados"] = True
+
                 st.rerun()
 
             else:
@@ -2271,7 +2287,10 @@ elif menu == "Análisis de Documento":
                 datos_detectados = {}
 
         else:
-            st.warning("No se pudo extraer texto del archivo o está vacío.")
+            st.info("Datos ya detectados para este archivo.")
+
+    else:
+        st.warning("No se pudo extraer texto del archivo o está vacío.")
 
     st.subheader("Datos clave del documento")
 
@@ -2419,6 +2438,7 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
 
     with col_b:
         if st.button("Limpiar filtros", key="reset_analisis"):
+            st.session_state["tipo_documento_analisis"] = "Carta Documento recibida"
             st.session_state["remitente_analisis"] = ""
             st.session_state["destinatario_analisis"] = ""
             st.session_state["fecha_doc_analisis"] = ""
@@ -2426,6 +2446,8 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
             st.session_state["objeto_analisis"] = ""
             st.session_state["resumen_analisis_manual"] = ""
             st.session_state["observaciones_analisis"] = ""
+            st.session_state["archivo_analisis_procesado"] = ""
+            st.session_state["datos_analisis_cargados"] = False
 
             limpiar_resultado("ultimo_analisis_documento")
             limpiar_resultado("editor_analisis_documento")
