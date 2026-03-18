@@ -5,6 +5,12 @@ from datetime import date, datetime
 from pypdf import PdfReader
 import os
 from openai import OpenAI
+import base64
+from io import BytesIO
+from docx import Document
+import base64
+from io import BytesIO
+import fitz  # PyMuPDF
 
 # =============================
 # CONFIG INICIAL
@@ -347,24 +353,48 @@ def extraer_texto_archivo(uploaded_file):
 
     try:
         if nombre.endswith(".txt"):
+            uploaded_file.seek(0)
             return uploaded_file.read().decode("utf-8")
 
-        elif nombre.endswith(".pdf"):
-            reader = PdfReader(uploaded_file)
-            texto = ""
-            for page in reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    texto += page_text + "\n"
-            return texto.strip()
-
         elif nombre.endswith(".docx"):
+            uploaded_file.seek(0)
             doc = Document(uploaded_file)
             texto = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
             return texto.strip()
 
+        elif nombre.endswith(".pdf"):
+            uploaded_file.seek(0)
+            reader = PdfReader(uploaded_file)
+            texto = ""
+
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    texto += page_text + "\n"
+
+            texto = texto.strip()
+
+            if texto:
+                return texto
+
+            # Fallback OCR para PDF escaneado
+            uploaded_file.seek(0)
+            return extraer_texto_pdf_escaneado_con_ia(uploaded_file)
+
+        elif nombre.endswith((".jpg", ".jpeg", ".png")):
+            uploaded_file.seek(0)
+            image_bytes = uploaded_file.read()
+
+            if nombre.endswith(".jpg") or nombre.endswith(".jpeg"):
+                mime_type = "image/jpeg"
+            else:
+                mime_type = "image/png"
+
+            return extraer_texto_imagen_con_ia(image_bytes, mime_type=mime_type)
+
         else:
-            return ""
+            return "ERROR_AL_LEER_ARCHIVO: Formato no soportado."
+
     except Exception as e:
         return f"ERROR_AL_LEER_ARCHIVO: {str(e)}"
 
@@ -380,35 +410,47 @@ def guardar_en_historial(tipo: str, titulo: str, contenido: str):
     })
 
 def obtener_cliente_openai():
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = None
+
+    # Primero intenta desde Streamlit secrets (producción)
+    if "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    
+    # Si no, intenta desde variables de entorno (local)
+    if not api_key:
+        api_key = os.getenv("OPENAI_API_KEY")
+
     if not api_key:
         return None
+
     return OpenAI(api_key=api_key)
 
 def generar_texto_con_ia(prompt_sistema: str, prompt_usuario: str):
-    cliente = obtener_cliente_openai()
-    if not cliente:
-        return None
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_IA: API KEY no configurada"
 
     try:
-        respuesta = cliente.responses.create(
+        respuesta = client.responses.create(
             model="gpt-4.1-mini",
             input=[
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": prompt_usuario},
             ],
         )
-        return respuesta.output_text
+        return (respuesta.output_text or "").strip()
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
 def diagnosticar_documento_con_ia(texto_documento: str, nombre_archivo: str = ""):
-    cliente = obtener_cliente_openai()
-    if not cliente:
-        return None
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_IA: API KEY no configurada"
 
     try:
-        respuesta = cliente.responses.create(
+        respuesta = client.responses.create(
             model="gpt-4.1-mini",
             input=[
                 {
@@ -445,17 +487,18 @@ Texto del documento:
                 },
             ],
         )
-        return respuesta.output_text
+        return (respuesta.output_text or "").strip()
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
 def editar_texto_con_ia(texto_original: str, instruccion_usuario: str):
-    cliente = obtener_cliente_openai()
-    if not cliente:
-        return None
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_IA: API KEY no configurada"
 
     try:
-        respuesta = cliente.responses.create(
+        respuesta = client.responses.create(
             model="gpt-4.1-mini",
             input=[
                 {
@@ -480,13 +523,90 @@ Instrucción del usuario:
                 },
             ],
         )
-        return respuesta.output_text
+        return (respuesta.output_text or "").strip()
     except Exception as e:
         return f"ERROR_IA: {str(e)}"
 
 def limpiar_resultado(clave: str):
     if clave in st.session_state:
         del st.session_state[clave]
+
+def imagen_a_data_url(image_bytes, mime_type="image/png"):
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:{mime_type};base64,{base64_image}"
+
+
+def extraer_texto_imagen_con_ia(image_bytes, mime_type="image/png"):
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_OCR_IMAGEN: API KEY no configurada"
+
+    try:
+        data_url = imagen_a_data_url(image_bytes, mime_type)
+
+        respuesta = client.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": (
+                                "Extraé todo el texto visible de esta imagen en español, "
+                                "respetando lo más posible saltos de línea, nombres, fechas, montos y domicilios. "
+                                "No resumas. No expliques. Devolvé solo el texto extraído."
+                            ),
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": data_url,
+                            "detail": "high",
+                        },
+                    ],
+                }
+            ],
+        )
+
+        return (respuesta.output_text or "").strip()
+
+    except Exception as e:
+        return f"ERROR_OCR_IMAGEN: {str(e)}"
+    
+def extraer_texto_pdf_escaneado_con_ia(uploaded_file):
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_OCR_PDF: API KEY no configurada"
+
+    try:
+        uploaded_file.seek(0)
+        pdf_bytes = uploaded_file.read()
+
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        textos_paginas = []
+
+        for i, page in enumerate(doc):
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            image_bytes = pix.tobytes("png")
+
+            texto_pagina = extraer_texto_imagen_con_ia(image_bytes, mime_type="image/png")
+
+            if texto_pagina.startswith("ERROR_OCR_IMAGEN:"):
+                return texto_pagina
+
+            if texto_pagina.strip():
+                textos_paginas.append(f"\n--- Página {i + 1} ---\n{texto_pagina}")
+
+        return "\n".join(textos_paginas).strip()
+
+    except Exception as e:
+        return f"ERROR_OCR_PDF: {str(e)}"
+
+def imagen_a_data_url(image_bytes, mime_type="image/png"):
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:{mime_type};base64,{base64_image}"
 
 # =============================
 # HEADER
@@ -670,9 +790,9 @@ elif menu == "Diagnóstico Inteligente":
     st.write("Subí un documento y la IA va a detectar automáticamente qué es, de qué trata y cuál sería el próximo paso recomendado dentro del sistema.")
 
     archivo_diag = st.file_uploader(
-        "Subir documento para diagnóstico",
-        type=["pdf", "docx", "txt"],
-        key="archivo_diagnostico"
+    "Subir documento para diagnóstico",
+    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+    key="archivo_diagnostico"
     )
 
     observaciones_diag = st.text_area(
@@ -684,9 +804,10 @@ elif menu == "Diagnóstico Inteligente":
     texto_diagnostico = ""
 
     if archivo_diag is not None:
-        texto_diagnostico = extraer_texto_archivo(archivo_diag)
+        with st.spinner("Procesando archivo..."):
+            texto_diagnostico = extraer_texto_archivo(archivo_diag)
 
-        if texto_diagnostico.startswith("ERROR_AL_LEER_ARCHIVO:"):
+        if texto_diagnostico.startswith("ERROR_"):
             st.error(texto_diagnostico)
             texto_diagnostico = ""
         elif texto_diagnostico.strip():
@@ -694,11 +815,24 @@ elif menu == "Diagnóstico Inteligente":
             st.text_area(
                 "Texto detectado del archivo",
                 value=texto_diagnostico,
-                height=220
+                height=220,
+                key="texto_detectado_diagnostico"
             )
         else:
             st.warning("No se pudo extraer texto del archivo o está vacío.")
 
+        if texto_diagnostico == "PDF_ESCANEADO_O_SIN_TEXTO":
+            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
+
+        elif texto_diagnostico == "IMAGEN_CARGADA_PARA_OCR":
+            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
+
+        elif texto_diagnostico.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(texto_diagnostico)
+
+        else:
+            st.success("Archivo leído correctamente.")
+    
     if st.button("Generar diagnóstico con IA"):
         
         limpiar_resultado("ultimo_diagnostico")
@@ -1130,16 +1264,18 @@ elif menu == "Respuesta Carta Documento":
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
 
     archivo_respuesta = st.file_uploader(
-        "Subir documento recibido (opcional)",
-        type=["pdf", "docx", "txt"],
-        key="archivo_respuesta_cd"
-    )
+    "Subir documento recibido (opcional)",
+    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+    key="archivo_respuesta_cd"
+    )   
 
     texto_archivo_respuesta = ""
+    
     if archivo_respuesta is not None:
-        texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
+        with st.spinner("Procesando archivo..."):
+            texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
 
-        if texto_archivo_respuesta.startswith("ERROR_AL_LEER_ARCHIVO:"):
+        if texto_archivo_respuesta.startswith("ERROR_"):
             st.error(texto_archivo_respuesta)
             texto_archivo_respuesta = ""
         elif texto_archivo_respuesta.strip():
@@ -1147,11 +1283,24 @@ elif menu == "Respuesta Carta Documento":
             st.text_area(
                 "Texto detectado del archivo",
                 value=texto_archivo_respuesta,
-                height=180
+                height=180,
+                key="texto_detectado_respuesta"
             )
         else:
-            st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
 
+        if texto_archivo_respuesta == "PDF_ESCANEADO_O_SIN_TEXTO":
+            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
+
+        elif texto_archivo_respuesta == "IMAGEN_CARGADA_PARA_OCR":
+            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
+
+        elif texto_archivo_respuesta.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(texto_archivo_respuesta)
+
+        else:
+            st.success("Archivo leído correctamente.")
+    
     texto_base_respuesta = ""
     if texto_archivo_respuesta.strip():
         texto_base_respuesta = texto_archivo_respuesta
@@ -1957,9 +2106,9 @@ elif menu == "Análisis de Documento":
     st.header("📂 Análisis de Documento")
 
     uploaded_file = st.file_uploader(
-        "Subir archivo",
-        type=["pdf", "docx", "txt"],
-        key="archivo_analisis"
+    "Subir archivo",
+    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+    key="archivo_analisis"
     )
 
     tipo_documento = st.selectbox(
@@ -1982,10 +2131,12 @@ elif menu == "Análisis de Documento":
     )
 
     contenido_extraido = ""
+    
     if uploaded_file is not None:
-        contenido_extraido = extraer_texto_archivo(uploaded_file)
+        with st.spinner("Procesando archivo..."):
+            contenido_extraido = extraer_texto_archivo(uploaded_file)
 
-        if str(contenido_extraido).startswith("ERROR_AL_LEER_ARCHIVO:"):
+        if contenido_extraido.startswith("ERROR_"):
             st.error(contenido_extraido)
             contenido_extraido = ""
         elif contenido_extraido.strip():
@@ -1997,8 +2148,20 @@ elif menu == "Análisis de Documento":
                 key="texto_detectado_analisis"
             )
         else:
-            st.warning("No se pudo extraer texto del archivo o el archivo está vacío.")
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
 
+        if contenido_extraido == "PDF_ESCANEADO_O_SIN_TEXTO":
+            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
+
+        elif contenido_extraido == "IMAGEN_CARGADA_PARA_OCR":
+            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
+
+        elif contenido_extraido.startswith("ERROR_AL_LEER_ARCHIVO:"):
+            st.error(contenido_extraido)
+
+        else:
+            st.success("Archivo leído correctamente.")
+    
     st.subheader("Datos clave del documento")
 
     remitente = st.text_input("Remitente", key="remitente_analisis")
