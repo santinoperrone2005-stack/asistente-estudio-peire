@@ -872,27 +872,31 @@ elif menu == "Diagnóstico Inteligente":
         if texto_diagnostico.startswith("ERROR_"):
             st.error(texto_diagnostico)
             texto_diagnostico = ""
+
         elif texto_diagnostico.strip():
             st.success(f"Archivo cargado: {archivo_diag.name}")
+
             st.text_area(
                 "Texto detectado del archivo",
                 value=texto_diagnostico,
                 height=220,
                 key="texto_detectado_diagnostico"
             )
+
         else:
             st.warning("No se pudo extraer texto del archivo o está vacío.")
 
+        # 👇 ESTO TAMBIÉN ADENTRO
         if texto_diagnostico == "PDF_ESCANEADO_O_SIN_TEXTO":
-            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
+            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado.")
 
         elif texto_diagnostico == "IMAGEN_CARGADA_PARA_OCR":
-            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
+            st.warning("Se cargó una imagen. Falta agregar OCR.")
 
         elif texto_diagnostico.startswith("ERROR_AL_LEER_ARCHIVO:"):
             st.error(texto_diagnostico)
 
-        else:
+        elif texto_diagnostico.strip():
             st.success("Archivo leído correctamente.")
     
     if st.button("Generar diagnóstico con IA"):
