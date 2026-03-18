@@ -1341,6 +1341,36 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 elif menu == "Respuesta Carta Documento":
     st.header("✉️ Respuesta a Carta Documento")
 
+    if "archivo_respuesta_procesado" not in st.session_state:
+        st.session_state["archivo_respuesta_procesado"] = ""
+
+    if "datos_respuesta_cargados" not in st.session_state:
+        st.session_state["datos_respuesta_cargados"] = False
+
+    if "remitente_detectado" not in st.session_state:
+        st.session_state["remitente_detectado"] = ""
+
+    if "destinatario_detectado" not in st.session_state:
+        st.session_state["destinatario_detectado"] = ""
+
+    if "tipo_documento_detectado" not in st.session_state:
+        st.session_state["tipo_documento_detectado"] = ""
+
+    if "fecha_detectada" not in st.session_state:
+        st.session_state["fecha_detectada"] = ""
+
+    if "monto_detectado" not in st.session_state:
+        st.session_state["monto_detectado"] = ""
+
+    if "objeto_detectado" not in st.session_state:
+        st.session_state["objeto_detectado"] = ""
+
+    if "texto_recibido_respuesta" not in st.session_state:
+        st.session_state["texto_recibido_respuesta"] = ""
+
+    if "hechos_reales_respuesta" not in st.session_state:
+        st.session_state["hechos_reales_respuesta"] = ""
+
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
@@ -1350,61 +1380,98 @@ elif menu == "Respuesta Carta Documento":
             limpiar_resultado("editor_respuesta_cd")
             limpiar_resultado("sync_editor_respuesta_cd")
             limpiar_resultado("instruccion_edicion_respuesta_cd")
+            
+            st.session_state["archivo_respuesta_procesado"] = ""
+            st.session_state["datos_respuesta_cargados"] = False
+            st.session_state["remitente_detectado"] = ""
+            st.session_state["destinatario_detectado"] = ""
+            st.session_state["tipo_documento_detectado"] = ""
+            st.session_state["fecha_detectada"] = ""
+            st.session_state["monto_detectado"] = ""
+            st.session_state["objeto_detectado"] = ""
+            st.session_state["texto_recibido_respuesta"] = ""
+            st.session_state["hechos_reales_respuesta"] = ""
+            
             st.rerun()
     
     datos_analisis = st.session_state.get("analisis_para_respuesta", {})
 
     if datos_analisis:
-
         st.success("Se cargó información desde 'Análisis de Documento'.")
 
-        col_ref1, col_ref2 = st.columns(2)
+        if not st.session_state["remitente_detectado"]:
+            st.session_state["remitente_detectado"] = datos_analisis.get("remitente", "")
 
-        with col_ref1:
-            remitente = st.text_input(
-                "Remitente detectado",
-                value=datos_analisis.get("remitente", ""),
-                key="remitente_detectado"
-            )
+        if not st.session_state["destinatario_detectado"]:
+            st.session_state["destinatario_detectado"] = datos_analisis.get("destinatario", "")
 
-            destinatario = st.text_input(
-                "Destinatario detectado",
-                value=datos_analisis.get("destinatario", ""),
-                key="destinatario_detectado"
-            )
+        if not st.session_state["tipo_documento_detectado"]:
+            st.session_state["tipo_documento_detectado"] = datos_analisis.get("tipo_documento", "")
 
-            tipo_documento = st.text_input(
-                "Tipo de documento",
-                value=datos_analisis.get("tipo_documento", ""),
-                key="tipo_documento_detectado"
-            )
+        if not st.session_state["fecha_detectada"]:
+            st.session_state["fecha_detectada"] = datos_analisis.get("fecha_doc", "")
 
-        with col_ref2:
-            fecha_doc = st.text_input(
-                "Fecha detectada",
-                value=datos_analisis.get("fecha_doc", ""),
-                key="fecha_detectada"
-            )
+        if not st.session_state["monto_detectado"]:
+            st.session_state["monto_detectado"] = datos_analisis.get("monto", "")
 
-            monto = st.text_input(
-                "Monto detectado",
-                value=datos_analisis.get("monto", ""),
-                key="monto_detectado"
-            )
+        if not st.session_state["objeto_detectado"]:
+            st.session_state["objeto_detectado"] = datos_analisis.get("objeto", "")
 
-            objeto = st.text_input(
-                "Objeto detectado",
-                value=datos_analisis.get("objeto", ""),
-                key="objeto_detectado"
-            )
+        if not st.session_state["texto_recibido_respuesta"]:
+            st.session_state["texto_recibido_respuesta"] = datos_analisis.get("texto_recibido", "")
 
-        if st.button("🧹 Limpiar datos cargados del análisis"):
+        if not st.session_state["hechos_reales_respuesta"]:
+            st.session_state["hechos_reales_respuesta"] = datos_analisis.get("hechos_reales", "")
+    
+    if st.button("🧹 Limpiar datos cargados del análisis"):
+        if "analisis_para_respuesta" in st.session_state:
+            del st.session_state["analisis_para_respuesta"]
 
-            if "analisis_para_respuesta" in st.session_state:
-                del st.session_state["analisis_para_respuesta"]
+        st.session_state["remitente_detectado"] = ""
+        st.session_state["destinatario_detectado"] = ""
+        st.session_state["tipo_documento_detectado"] = ""
+        st.session_state["fecha_detectada"] = ""
+        st.session_state["monto_detectado"] = ""
+        st.session_state["objeto_detectado"] = ""
+        st.session_state["texto_recibido_respuesta"] = ""
+        st.session_state["hechos_reales_respuesta"] = ""
 
-            st.rerun()
+        st.rerun()
 
+    col_ref1, col_ref2 = st.columns(2)
+
+    with col_ref1:
+        remitente = st.text_input(
+            "Remitente detectado",
+            key="remitente_detectado"
+        )
+
+        destinatario = st.text_input(
+            "Destinatario detectado",
+            key="destinatario_detectado"
+        )
+
+        tipo_documento = st.text_input(
+            "Tipo de documento",
+            key="tipo_documento_detectado"
+        )
+
+    with col_ref2:
+        fecha_doc = st.text_input(
+            "Fecha detectada",
+            key="fecha_detectada"
+        )
+
+        monto = st.text_input(
+            "Monto detectado",
+            key="monto_detectado"
+        )
+
+        objeto = st.text_input(
+            "Objeto detectado",
+            key="objeto_detectado"
+        )
+    
     col1, col2, col3 = st.columns(3)
     with col1:
         postura = st.selectbox("Postura", ["Negar deuda/hechos", "Aceptar parcialmente", "Proponer acuerdo", "Rechazar e intimar"])
@@ -1414,61 +1481,101 @@ elif menu == "Respuesta Carta Documento":
         plazo_intimacion = st.selectbox("Si intimás, plazo", ["24 hs", "48 hs", "72 hs", "5 días", "10 días"])
 
     archivo_respuesta = st.file_uploader(
-    "Subir documento recibido (opcional)",
-    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
-    key="archivo_respuesta_cd"
-    )   
+        "Subir documento recibido (opcional)",
+        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+        key="archivo_respuesta_cd"
+    )
 
     texto_archivo_respuesta = ""
-    
+    datos_detectados_respuesta = {}
+
     if archivo_respuesta is not None:
+        nombre_archivo_actual = archivo_respuesta.name
+
         with st.spinner("Procesando archivo..."):
             texto_archivo_respuesta = extraer_texto_archivo(archivo_respuesta)
 
         if texto_archivo_respuesta.startswith("ERROR_"):
             st.error(texto_archivo_respuesta)
             texto_archivo_respuesta = ""
+
         elif texto_archivo_respuesta.strip():
             st.success(f"Archivo cargado: {archivo_respuesta.name}")
+
             st.text_area(
                 "Texto detectado del archivo",
                 value=texto_archivo_respuesta,
                 height=180,
                 key="texto_detectado_respuesta"
             )
+
+            if (
+                st.session_state["archivo_respuesta_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_respuesta_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados_respuesta = extraer_datos_clave_con_ia(texto_archivo_respuesta)
+
+                if isinstance(datos_detectados_respuesta, dict) and "error" in datos_detectados_respuesta:
+                    st.error(datos_detectados_respuesta["error"])
+                    datos_detectados_respuesta = {}
+
+                elif isinstance(datos_detectados_respuesta, dict):
+                    st.subheader("Datos detectados automáticamente")
+
+                    st.markdown(f"""
+**Tipo sugerido:** {datos_detectados_respuesta.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados_respuesta.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados_respuesta.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados_respuesta.get("fecha", "No detectado")}  
+**Monto:** {datos_detectados_respuesta.get("monto", "No detectado")}  
+**Objeto:** {datos_detectados_respuesta.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados_respuesta.get("resumen", "No detectado")}
+""")
+
+                    st.session_state["remitente_detectado"] = datos_detectados_respuesta.get("remitente", "")
+                    st.session_state["destinatario_detectado"] = datos_detectados_respuesta.get("destinatario", "")
+                    st.session_state["tipo_documento_detectado"] = datos_detectados_respuesta.get("tipo_documento", "")
+                    st.session_state["fecha_detectada"] = datos_detectados_respuesta.get("fecha", "")
+                    st.session_state["monto_detectado"] = datos_detectados_respuesta.get("monto", "")
+                    st.session_state["objeto_detectado"] = datos_detectados_respuesta.get("objeto", "")
+                    st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
+
+                    st.session_state["archivo_respuesta_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_respuesta_cargados"] = True
+
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
+                    datos_detectados_respuesta = {}
+
+            else:
+                st.info("Datos ya detectados para este archivo.")
+
         else:
             st.warning("No se pudo extraer texto del archivo o está vacío.")
-
-        if texto_archivo_respuesta == "PDF_ESCANEADO_O_SIN_TEXTO":
-            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
-
-        elif texto_archivo_respuesta == "IMAGEN_CARGADA_PARA_OCR":
-            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
-
-        elif texto_archivo_respuesta.startswith("ERROR_AL_LEER_ARCHIVO:"):
-            st.error(texto_archivo_respuesta)
-
-        else:
-            st.success("Archivo leído correctamente.")
     
-    texto_base_respuesta = ""
     if texto_archivo_respuesta.strip():
-        texto_base_respuesta = texto_archivo_respuesta
-    else:
-        texto_base_respuesta = datos_analisis.get("texto_recibido", "")
+        st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
+    elif datos_analisis.get("texto_recibido") and not st.session_state["texto_recibido_respuesta"]:
+        st.session_state["texto_recibido_respuesta"] = datos_analisis.get("texto_recibido", "")
+
+    if datos_analisis.get("hechos_reales") and not st.session_state["hechos_reales_respuesta"]:
+        st.session_state["hechos_reales_respuesta"] = datos_analisis.get("hechos_reales", "")
 
     texto_recibido = st.text_area(
         "Texto recibido (pegar o editar)",
-        value=texto_base_respuesta,
         height=160,
-        placeholder="Pegá acá el texto recibido o cargá un archivo arriba."
+        placeholder="Pegá acá el texto recibido o cargá un archivo arriba.",
+        key="texto_recibido_respuesta"
     )
 
     hechos_reales = st.text_area(
         "Hechos reales del cliente (lo que SÍ pasó)",
-        value=datos_analisis.get("hechos_reales", ""),
         height=120,
-        placeholder="Describí la versión real del cliente."
+        placeholder="Describí la versión real del cliente.",
+        key="hechos_reales_respuesta"
     )
 
     col4, col5, col6, col7 = st.columns(4)
