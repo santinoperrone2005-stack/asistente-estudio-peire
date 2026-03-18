@@ -2181,9 +2181,6 @@ elif menu == "Análisis de Documento":
         "Otro"
     ]
 
-    if "tipo_documento_analisis" not in st.session_state:
-        st.session_state["tipo_documento_analisis"] = "Carta Documento recibida"
-
     if "remitente_analisis" not in st.session_state:
         st.session_state["remitente_analisis"] = ""
 
@@ -2245,7 +2242,16 @@ elif menu == "Análisis de Documento":
 
             elif isinstance(datos_detectados, dict):
                 st.subheader("Datos detectados automáticamente")
-                st.json(datos_detectados)
+
+                st.markdown(f"""
+                **Tipo sugerido:** {datos_detectados.get("tipo_documento", "No detectado")}  
+                **Remitente:** {datos_detectados.get("remitente", "No detectado")}  
+                **Destinatario:** {datos_detectados.get("destinatario", "No detectado")}  
+                **Fecha:** {datos_detectados.get("fecha", "No detectado")}  
+                **Monto:** {datos_detectados.get("monto", "No detectado")}  
+                **Objeto:** {datos_detectados.get("objeto", "No detectado")}  
+                **Resumen:** {datos_detectados.get("resumen", "No detectado")}
+                """)
 
                 st.session_state["remitente_analisis"] = datos_detectados.get("remitente", "")
                 st.session_state["destinatario_analisis"] = datos_detectados.get("destinatario", "")
@@ -2255,8 +2261,8 @@ elif menu == "Análisis de Documento":
                 st.session_state["resumen_analisis_manual"] = datos_detectados.get("resumen", "")
 
                 tipo_detectado = datos_detectados.get("tipo_documento", "")
-                if tipo_detectado in tipo_opciones:
-                    st.session_state["tipo_documento_analisis"] = tipo_detectado
+                if tipo_detectado:
+                    st.info(f"Tipo sugerido por IA: {tipo_detectado}")
 
                 st.rerun()
 
@@ -2413,7 +2419,6 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
 
     with col_b:
         if st.button("Limpiar filtros", key="reset_analisis"):
-            st.session_state["tipo_documento_analisis"] = "Carta Documento recibida"
             st.session_state["remitente_analisis"] = ""
             st.session_state["destinatario_analisis"] = ""
             st.session_state["fecha_doc_analisis"] = ""
