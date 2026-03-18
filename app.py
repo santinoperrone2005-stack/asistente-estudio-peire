@@ -613,7 +613,7 @@ def extraer_datos_clave_con_ia(texto_documento: str):
     client = obtener_cliente_openai()
 
     if client is None:
-        return "ERROR_IA: API KEY no configurada"
+        return {"error": "ERROR_IA: API KEY no configurada"}
 
     try:
         respuesta = client.responses.create(
@@ -624,35 +624,40 @@ def extraer_datos_clave_con_ia(texto_documento: str):
                     "content": (
                         "Sos asistente jurídico del Estudio Peire. "
                         "Tu tarea es extraer datos clave de documentos jurídicos argentinos. "
-                        "No inventes datos. Si algo no está, poné 'No detectado'. "
-                        "Respondé en formato JSON válido."
+                        "No inventes datos. Si un dato no surge claramente, devolvé 'No detectado'. "
+                        "Respondé únicamente en JSON válido, sin texto extra antes ni después."
                     ),
                 },
                 {
                     "role": "user",
                     "content": f"""
-Extraé los siguientes datos del documento:
+Extraé del siguiente documento estos campos exactos y devolvelos en JSON:
 
-- tipo_documento
-- remitente
-- destinatario
-- domicilio
-- monto
-- plazo
-- fecha
-- cuit
+{{
+  "remitente": "",
+  "destinatario": "",
+  "fecha": "",
+  "monto": "",
+  "objeto": "",
+  "resumen": ""
+}}
 
-Texto:
+Texto del documento:
 {texto_documento}
 """,
                 },
             ],
         )
 
-        return respuesta.output_text
+        texto_respuesta = (respuesta.output_text or "").strip()
+
+        try:
+            return json.loads(texto_respuesta)
+        except Exception:
+            return {"error": f"ERROR_JSON: {texto_respuesta}"}
 
     except Exception as e:
-        return f"ERROR_IA: {str(e)}"
+        return {"error": f"ERROR_IA: {str(e)}"}
 
 # =============================
 # HEADER
@@ -2152,9 +2157,9 @@ elif menu == "Análisis de Documento":
     st.header("📂 Análisis de Documento")
 
     uploaded_file = st.file_uploader(
-    "Subir archivo",
-    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
-    key="archivo_analisis"
+        "Subir archivo",
+        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+        key="archivo_analisis"
     )
 
     tipo_documento = st.selectbox(
@@ -2177,71 +2182,89 @@ elif menu == "Análisis de Documento":
     )
 
     contenido_extraido = ""
-    
+    datos_detectados = {}
+
     if uploaded_file is not None:
         with st.spinner("Procesando archivo..."):
             contenido_extraido = extraer_texto_archivo(uploaded_file)
 
-        if contenido_extraido and not contenido_extraido.startswith("ERROR_"):
-    
-            with st.spinner("Analizando datos clave..."):
-                datos_clave = extraer_datos_clave_con_ia(contenido_extraido)
-
-            if datos_clave.startswith("ERROR_"):
-                st.error(datos_clave)
-            else:
-                st.subheader("Datos detectados automáticamente")
-
-                try:
-                    datos_dict = json.loads(datos_clave)
-                    st.json(datos_dict)
-                except:
-                    st.code(datos_clave)
-        
         if contenido_extraido.startswith("ERROR_"):
             st.error(contenido_extraido)
             contenido_extraido = ""
+
         elif contenido_extraido.strip():
             st.success(f"Archivo cargado: {uploaded_file.name}")
+
             st.text_area(
                 "Texto detectado del archivo",
                 value=contenido_extraido,
                 height=220,
                 key="texto_detectado_analisis"
             )
+
+            with st.spinner("Extrayendo datos clave..."):
+                datos_detectados = extraer_datos_clave_con_ia(contenido_extraido)
+
+            if isinstance(datos_detectados, dict) and "error" in datos_detectados:
+                st.error(datos_detectados["error"])
+                datos_detectados = {}
+            elif isinstance(datos_detectados, dict):
+                st.subheader("Datos detectados automáticamente")
+                st.json(datos_detectados)
+            else:
+                st.warning("No se pudieron estructurar los datos detectados.")
+                datos_detectados = {}
+
         else:
             st.warning("No se pudo extraer texto del archivo o está vacío.")
 
-        if contenido_extraido == "PDF_ESCANEADO_O_SIN_TEXTO":
-            st.warning("El PDF no tiene texto extraíble. Parece ser un documento escaneado o una imagen en PDF.")
-
-        elif contenido_extraido == "IMAGEN_CARGADA_PARA_OCR":
-            st.warning("Se cargó una imagen. Falta agregar lectura OCR para extraer el texto automáticamente.")
-
-        elif contenido_extraido.startswith("ERROR_AL_LEER_ARCHIVO:"):
-            st.error(contenido_extraido)
-
-        else:
-            st.success("Archivo leído correctamente.")
-    
     st.subheader("Datos clave del documento")
 
-    remitente = st.text_input("Remitente", key="remitente_analisis")
-    destinatario = st.text_input("Destinatario", key="destinatario_analisis")
-    fecha_doc = st.text_input("Fecha del documento", key="fecha_doc_analisis")
-    monto = st.text_input("Monto (si aplica)", placeholder="Ej: $450.000", key="monto_analisis")
-    objeto = st.text_input("Objeto / tema principal", placeholder="Ej: Reclamo por alquiler adeudado", key="objeto_analisis")
+    remitente = st.text_input(
+        "Remitente",
+        value=datos_detectados.get("remitente", "") if datos_detectados else "",
+        key="remitente_analisis"
+    )
+
+    destinatario = st.text_input(
+        "Destinatario",
+        value=datos_detectados.get("destinatario", "") if datos_detectados else "",
+        key="destinatario_analisis"
+    )
+
+    fecha_doc = st.text_input(
+        "Fecha del documento",
+        value=datos_detectados.get("fecha", "") if datos_detectados else "",
+        key="fecha_doc_analisis"
+    )
+
+    monto = st.text_input(
+        "Monto (si aplica)",
+        value=datos_detectados.get("monto", "") if datos_detectados else "",
+        key="monto_analisis"
+    )
+
+    objeto = st.text_input(
+        "Objeto / tema principal",
+        value=datos_detectados.get("objeto", "") if datos_detectados else "",
+        key="objeto_analisis"
+    )
 
     resumen = st.text_area(
         "Resumen manual / puntos importantes",
-        height=140,
-        placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc.",
-        key="resumen_analisis"
+        value=datos_detectados.get("resumen", "") if datos_detectados else "",
+        height=120,
+        key="resumen_analisis_manual"
     )
 
-    usar_ia_analisis = st.checkbox("Usar IA para analizar el documento", value=True, key="usar_ia_analisis")
+    usar_ia_analisis = st.checkbox(
+        "Usar IA para analizar el documento",
+        value=True,
+        key="usar_ia_analisis"
+    )
 
     col_a, col_b = st.columns([1, 1])
+
     with col_a:
         if st.button("Preparar borrador con IA", key="generar_analisis"):
             limpiar_resultado("ultimo_analisis_documento")
