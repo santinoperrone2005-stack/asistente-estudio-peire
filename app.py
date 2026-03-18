@@ -1371,6 +1371,13 @@ elif menu == "Respuesta Carta Documento":
     if "hechos_reales_respuesta" not in st.session_state:
         st.session_state["hechos_reales_respuesta"] = ""
 
+# temporales
+    if "datos_detectados_tmp_respuesta" not in st.session_state:
+        st.session_state["datos_detectados_tmp_respuesta"] = {}
+
+    if "texto_detectado_tmp_respuesta" not in st.session_state:
+        st.session_state["texto_detectado_tmp_respuesta"] = ""
+    
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
@@ -1524,6 +1531,8 @@ elif menu == "Respuesta Carta Documento":
                     st.subheader("Datos detectados automáticamente")
 
                     st.markdown(f"""
+
+            
 **Tipo sugerido:** {datos_detectados_respuesta.get("tipo_documento", "No detectado")}  
 **Remitente:** {datos_detectados_respuesta.get("remitente", "No detectado")}  
 **Destinatario:** {datos_detectados_respuesta.get("destinatario", "No detectado")}  
@@ -1532,19 +1541,25 @@ elif menu == "Respuesta Carta Documento":
 **Objeto:** {datos_detectados_respuesta.get("objeto", "No detectado")}  
 **Resumen:** {datos_detectados_respuesta.get("resumen", "No detectado")}
 """)
-
-                    st.session_state["remitente_detectado"] = datos_detectados_respuesta.get("remitente", "")
-                    st.session_state["destinatario_detectado"] = datos_detectados_respuesta.get("destinatario", "")
-                    st.session_state["tipo_documento_detectado"] = datos_detectados_respuesta.get("tipo_documento", "")
-                    st.session_state["fecha_detectada"] = datos_detectados_respuesta.get("fecha", "")
-                    st.session_state["monto_detectado"] = datos_detectados_respuesta.get("monto", "")
-                    st.session_state["objeto_detectado"] = datos_detectados_respuesta.get("objeto", "")
-                    st.session_state["texto_recibido_respuesta"] = texto_archivo_respuesta
-
+                    # guardamos temporalmente (NO en los campos reales)
+                    st.session_state["datos_detectados_tmp_respuesta"] = datos_detectados_respuesta
+                    st.session_state["texto_detectado_tmp_respuesta"] = texto_archivo_respuesta
                     st.session_state["archivo_respuesta_procesado"] = nombre_archivo_actual
                     st.session_state["datos_respuesta_cargados"] = True
 
-                    st.rerun()
+# 👇 BOTÓN NUEVO (ACÁ VA)
+                    if st.button("Usar datos detectados en el formulario", key="usar_datos_detectados_respuesta"):
+                        tmp = st.session_state.get("datos_detectados_tmp_respuesta", {})
+
+                        st.session_state["remitente_detectado"] = tmp.get("remitente", "")
+                        st.session_state["destinatario_detectado"] = tmp.get("destinatario", "")
+                        st.session_state["tipo_documento_detectado"] = tmp.get("tipo_documento", "")
+                        st.session_state["fecha_detectada"] = tmp.get("fecha", "")
+                        st.session_state["monto_detectado"] = tmp.get("monto", "")
+                        st.session_state["objeto_detectado"] = tmp.get("objeto", "")
+                        st.session_state["texto_recibido_respuesta"] = st.session_state.get("texto_detectado_tmp_respuesta", "")
+
+                        st.rerun()
 
                 else:
                     st.warning("No se pudieron estructurar los datos detectados.")
