@@ -12,7 +12,8 @@ import base64
 from io import BytesIO
 import fitz  # PyMuPDF
 import json
-
+import re
+ 
 # =============================
 # CONFIG INICIAL
 # =============================
@@ -625,15 +626,16 @@ def extraer_datos_clave_con_ia(texto_documento: str):
                         "Sos asistente jurídico del Estudio Peire. "
                         "Tu tarea es extraer datos clave de documentos jurídicos argentinos. "
                         "No inventes datos. Si un dato no surge claramente, devolvé 'No detectado'. "
-                        "Respondé únicamente en JSON válido, sin texto extra antes ni después."
+                        "Respondé únicamente en JSON válido, sin markdown, sin bloque ```json, sin texto antes ni después."
                     ),
                 },
                 {
                     "role": "user",
                     "content": f"""
-Extraé del siguiente documento estos campos exactos y devolvelos en JSON:
+Extraé del siguiente documento estos campos exactos y devolvelos en JSON válido:
 
 {{
+  "tipo_documento": "",
   "remitente": "",
   "destinatario": "",
   "fecha": "",
@@ -641,6 +643,14 @@ Extraé del siguiente documento estos campos exactos y devolvelos en JSON:
   "objeto": "",
   "resumen": ""
 }}
+
+Importante:
+- En tipo_documento elegí una de estas opciones exactas:
+  "Carta Documento recibida"
+  "Respuesta a Carta Documento"
+  "Oficio recibido"
+  "Intimación"
+  "Otro"
 
 Texto del documento:
 {texto_documento}
@@ -651,10 +661,11 @@ Texto del documento:
 
         texto_respuesta = (respuesta.output_text or "").strip()
 
-        try:
-            return json.loads(texto_respuesta)
-        except Exception:
-            return {"error": f"ERROR_JSON: {texto_respuesta}"}
+        texto_respuesta = re.sub(r"^```json\s*", "", texto_respuesta, flags=re.IGNORECASE)
+        texto_respuesta = re.sub(r"^```\s*", "", texto_respuesta)
+        texto_respuesta = re.sub(r"\s*```$", "", texto_respuesta)
+
+        return json.loads(texto_respuesta)
 
     except Exception as e:
         return {"error": f"ERROR_IA: {str(e)}"}
@@ -2162,15 +2173,38 @@ elif menu == "Análisis de Documento":
         key="archivo_analisis"
     )
 
+    tipo_opciones = [
+        "Carta Documento recibida",
+        "Respuesta a Carta Documento",
+        "Oficio recibido",
+        "Intimación",
+        "Otro"
+    ]
+
+    if "tipo_documento_analisis" not in st.session_state:
+        st.session_state["tipo_documento_analisis"] = "Carta Documento recibida"
+
+    if "remitente_analisis" not in st.session_state:
+        st.session_state["remitente_analisis"] = ""
+
+    if "destinatario_analisis" not in st.session_state:
+        st.session_state["destinatario_analisis"] = ""
+
+    if "fecha_doc_analisis" not in st.session_state:
+        st.session_state["fecha_doc_analisis"] = ""
+
+    if "monto_analisis" not in st.session_state:
+        st.session_state["monto_analisis"] = ""
+
+    if "objeto_analisis" not in st.session_state:
+        st.session_state["objeto_analisis"] = ""
+
+    if "resumen_analisis_manual" not in st.session_state:
+        st.session_state["resumen_analisis_manual"] = ""
+
     tipo_documento = st.selectbox(
         "Tipo de documento",
-        [
-            "Carta Documento recibida",
-            "Respuesta a Carta Documento",
-            "Oficio recibido",
-            "Intimación",
-            "Otro"
-        ],
+        tipo_opciones,
         key="tipo_documento_analisis"
     )
 
@@ -2208,9 +2242,24 @@ elif menu == "Análisis de Documento":
             if isinstance(datos_detectados, dict) and "error" in datos_detectados:
                 st.error(datos_detectados["error"])
                 datos_detectados = {}
+
             elif isinstance(datos_detectados, dict):
                 st.subheader("Datos detectados automáticamente")
                 st.json(datos_detectados)
+
+                st.session_state["remitente_analisis"] = datos_detectados.get("remitente", "")
+                st.session_state["destinatario_analisis"] = datos_detectados.get("destinatario", "")
+                st.session_state["fecha_doc_analisis"] = datos_detectados.get("fecha", "")
+                st.session_state["monto_analisis"] = datos_detectados.get("monto", "")
+                st.session_state["objeto_analisis"] = datos_detectados.get("objeto", "")
+                st.session_state["resumen_analisis_manual"] = datos_detectados.get("resumen", "")
+
+                tipo_detectado = datos_detectados.get("tipo_documento", "")
+                if tipo_detectado in tipo_opciones:
+                    st.session_state["tipo_documento_analisis"] = tipo_detectado
+
+                st.rerun()
+
             else:
                 st.warning("No se pudieron estructurar los datos detectados.")
                 datos_detectados = {}
@@ -2222,39 +2271,36 @@ elif menu == "Análisis de Documento":
 
     remitente = st.text_input(
         "Remitente",
-        value=datos_detectados.get("remitente", "") if datos_detectados else "",
         key="remitente_analisis"
     )
 
     destinatario = st.text_input(
         "Destinatario",
-        value=datos_detectados.get("destinatario", "") if datos_detectados else "",
         key="destinatario_analisis"
     )
 
     fecha_doc = st.text_input(
         "Fecha del documento",
-        value=datos_detectados.get("fecha", "") if datos_detectados else "",
         key="fecha_doc_analisis"
     )
 
     monto = st.text_input(
         "Monto (si aplica)",
-        value=datos_detectados.get("monto", "") if datos_detectados else "",
-        key="monto_analisis"
+        key="monto_analisis",
+        placeholder="Ej: $450.000"
     )
 
     objeto = st.text_input(
         "Objeto / tema principal",
-        value=datos_detectados.get("objeto", "") if datos_detectados else "",
-        key="objeto_analisis"
+        key="objeto_analisis",
+        placeholder="Ej: Reclamo por alquiler adeudado"
     )
 
     resumen = st.text_area(
         "Resumen manual / puntos importantes",
-        value=datos_detectados.get("resumen", "") if datos_detectados else "",
         height=120,
-        key="resumen_analisis_manual"
+        key="resumen_analisis_manual",
+        placeholder="Ej: intiman pago por alquiler, reclaman $450.000, niegan pagos, dan plazo de 48 hs, etc."
     )
 
     usar_ia_analisis = st.checkbox(
@@ -2367,10 +2413,20 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
 
     with col_b:
         if st.button("Limpiar filtros", key="reset_analisis"):
+            st.session_state["tipo_documento_analisis"] = "Carta Documento recibida"
+            st.session_state["remitente_analisis"] = ""
+            st.session_state["destinatario_analisis"] = ""
+            st.session_state["fecha_doc_analisis"] = ""
+            st.session_state["monto_analisis"] = ""
+            st.session_state["objeto_analisis"] = ""
+            st.session_state["resumen_analisis_manual"] = ""
+            st.session_state["observaciones_analisis"] = ""
+
             limpiar_resultado("ultimo_analisis_documento")
             limpiar_resultado("editor_analisis_documento")
             limpiar_resultado("sync_editor_analisis_documento")
             limpiar_resultado("instruccion_edicion_analisis_documento")
+
             st.rerun()
 
     if "ultimo_analisis_documento" in st.session_state:
@@ -2428,7 +2484,7 @@ Se recomienda revisar el contenido del documento y utilizar la información arri
         exportar_word(
             st.session_state["ultimo_analisis_documento"],
             "Analisis_Documento_Estudio_Peire"
-        )
+        ) 
 
 # =========================================================
 # 7) HISTORIAL
