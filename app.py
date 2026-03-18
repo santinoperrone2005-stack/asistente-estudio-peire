@@ -11,6 +11,7 @@ from docx import Document
 import base64
 from io import BytesIO
 import fitz  # PyMuPDF
+import json
 
 # =============================
 # CONFIG INICIAL
@@ -607,6 +608,51 @@ def extraer_texto_pdf_escaneado_con_ia(uploaded_file):
 def imagen_a_data_url(image_bytes, mime_type="image/png"):
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
     return f"data:{mime_type};base64,{base64_image}"
+
+def extraer_datos_clave_con_ia(texto_documento: str):
+    client = obtener_cliente_openai()
+
+    if client is None:
+        return "ERROR_IA: API KEY no configurada"
+
+    try:
+        respuesta = client.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Sos asistente jurídico del Estudio Peire. "
+                        "Tu tarea es extraer datos clave de documentos jurídicos argentinos. "
+                        "No inventes datos. Si algo no está, poné 'No detectado'. "
+                        "Respondé en formato JSON válido."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Extraé los siguientes datos del documento:
+
+- tipo_documento
+- remitente
+- destinatario
+- domicilio
+- monto
+- plazo
+- fecha
+- cuit
+
+Texto:
+{texto_documento}
+""",
+                },
+            ],
+        )
+
+        return respuesta.output_text
+
+    except Exception as e:
+        return f"ERROR_IA: {str(e)}"
 
 # =============================
 # HEADER
@@ -2136,6 +2182,22 @@ elif menu == "Análisis de Documento":
         with st.spinner("Procesando archivo..."):
             contenido_extraido = extraer_texto_archivo(uploaded_file)
 
+        if contenido_extraido and not contenido_extraido.startswith("ERROR_"):
+    
+            with st.spinner("Analizando datos clave..."):
+                datos_clave = extraer_datos_clave_con_ia(contenido_extraido)
+
+            if datos_clave.startswith("ERROR_"):
+                st.error(datos_clave)
+            else:
+                st.subheader("Datos detectados automáticamente")
+
+                try:
+                    datos_dict = json.loads(datos_clave)
+                    st.json(datos_dict)
+                except:
+                    st.code(datos_clave)
+        
         if contenido_extraido.startswith("ERROR_"):
             st.error(contenido_extraido)
             contenido_extraido = ""
