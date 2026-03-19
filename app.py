@@ -769,14 +769,14 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
-                <h4>📂 Analizar Documento</h4>
-                <p>Subir archivos, extraer texto y preparar un análisis base.</p>
+                <h4>💼 Hacer Presupuesto</h4>
+                <p>Generar propuestas y presupuestos de honorarios.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-        if st.button("Ir a Análisis de Documento", key="go_analisis"):
-            st.session_state.menu_actual = "Análisis de Documento"
+        if st.button("Ir a Presupuesto", key="go_presupuesto"):
+            st.session_state.menu_actual = "Presupuesto"
             st.rerun()
 
     with col2:
@@ -809,14 +809,14 @@ if menu == "Dashboard":
         st.markdown(
             """
             <div class="mini-card">
-                <h4>💼 Hacer Presupuesto</h4>
-                <p>Generar propuestas y presupuestos de honorarios.</p>
+                <h4>📂 Analizar Documento</h4>
+                <p>Subir archivos, extraer texto y preparar un análisis base.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-        if st.button("Ir a Presupuesto", key="go_presupuesto"):
-            st.session_state.menu_actual = "Presupuesto"
+        if st.button("Ir a Análisis de Documento", key="go_analisis"):
+            st.session_state.menu_actual = "Análisis de Documento"
             st.rerun()
 
         st.markdown(
