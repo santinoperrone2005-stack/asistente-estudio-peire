@@ -1783,28 +1783,162 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 elif menu == "Contestación de Oficio":
     st.header("📑 Contestación de Oficio")
 
+    # ---------------------------
+    # Estado inicial
+    # ---------------------------
+    if "archivo_oficio_procesado" not in st.session_state:
+        st.session_state["archivo_oficio_procesado"] = ""
+
+    if "datos_oficio_cargados" not in st.session_state:
+        st.session_state["datos_oficio_cargados"] = False
+
+    if "organismo_oficio" not in st.session_state:
+        st.session_state["organismo_oficio"] = ""
+
+    if "dependencia_oficio" not in st.session_state:
+        st.session_state["dependencia_oficio"] = ""
+
+    if "expediente_oficio" not in st.session_state:
+        st.session_state["expediente_oficio"] = ""
+
+    if "fecha_oficio" not in st.session_state:
+        st.session_state["fecha_oficio"] = date.today().strftime("%d/%m/%Y")
+
+    if "objeto_oficio" not in st.session_state:
+        st.session_state["objeto_oficio"] = ""
+
+    if "pedido_oficio" not in st.session_state:
+        st.session_state["pedido_oficio"] = ""
+
+    if "respuesta_oficio" not in st.session_state:
+        st.session_state["respuesta_oficio"] = ""
+
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
+
     with col_b:
         if st.button("Nueva contestación", key="reset_oficio"):
             limpiar_resultado("ultimo_oficio")
             limpiar_resultado("editor_oficio")
             limpiar_resultado("sync_editor_oficio")
             limpiar_resultado("instruccion_edicion_oficio")
-            st.rerun()
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        organismo = st.text_input("Organismo / Juzgado")
-        dependencia = st.text_input("Dependencia/Secretaría (opcional)")
-    with col2:
-        expediente = st.text_input("Carátula / Expediente")
-        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
 
-    objeto = st.text_input("Objeto del oficio (1 línea)")
-    pedido = st.text_area("Pedido del oficio (copiar/pegar)", height=110)
-    respuesta = st.text_area("Información a informar (ordenada y completa)", height=140)
+            st.session_state["archivo_oficio_procesado"] = ""
+            st.session_state["datos_oficio_cargados"] = False
+            st.session_state["organismo_oficio"] = ""
+            st.session_state["dependencia_oficio"] = ""
+            st.session_state["expediente_oficio"] = ""
+            st.session_state["fecha_oficio"] = date.today().strftime("%d/%m/%Y")
+            st.session_state["objeto_oficio"] = ""
+            st.session_state["pedido_oficio"] = ""
+            st.session_state["respuesta_oficio"] = ""
+
+            st.rerun()
+
+# Archivo primero
+# ---------------------------
+st.markdown("### Subir archivo")
+
+archivo_oficio_subido = st.file_uploader(
+    "Subir oficio o documento relacionado (opcional)",
+    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+    key="archivo_oficio_uploader"
+)
+
+texto_archivo_oficio = ""
+
+if archivo_oficio_subido is not None:
+    nombre_archivo_actual = archivo_oficio_subido.name
+
+    with st.spinner("Procesando archivo..."):
+        texto_archivo_oficio = extraer_texto_archivo(archivo_oficio_subido)
+
+    if texto_archivo_oficio.startswith("ERROR_"):
+        st.error(texto_archivo_oficio)
+        texto_archivo_oficio = ""
+
+    elif texto_archivo_oficio.strip():
+        st.success(f"Archivo cargado: {archivo_oficio_subido.name}")
+
+        st.text_area(
+            "Texto detectado del archivo",
+            value=texto_archivo_oficio,
+            height=220,
+            key="texto_detectado_oficio"
+        )
+
+        if (
+            st.session_state["archivo_oficio_procesado"] != nombre_archivo_actual
+            or not st.session_state["datos_oficio_cargados"]
+        ):
+            with st.spinner("Extrayendo datos clave..."):
+                datos_detectados_oficio = extraer_datos_clave_con_ia(texto_archivo_oficio)
+
+            if isinstance(datos_detectados_oficio, dict) and "error" in datos_detectados_oficio:
+                st.error(datos_detectados_oficio["error"])
+
+            elif isinstance(datos_detectados_oficio, dict):
+                st.subheader("Datos detectados automáticamente")
+
+                st.markdown(f"""
+**Tipo sugerido:** {datos_detectados_oficio.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados_oficio.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados_oficio.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados_oficio.get("fecha", "No detectado")}  
+**Monto:** {datos_detectados_oficio.get("monto", "No detectado")}  
+**Objeto:** {datos_detectados_oficio.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados_oficio.get("resumen", "No detectado")}
+""")
+
+                st.session_state["organismo_oficio"] = datos_detectados_oficio.get("destinatario", "")
+                st.session_state["dependencia_oficio"] = ""
+                st.session_state["expediente_oficio"] = ""
+                st.session_state["fecha_oficio"] = datos_detectados_oficio.get("fecha", date.today().strftime("%d/%m/%Y"))
+                st.session_state["objeto_oficio"] = datos_detectados_oficio.get("objeto", "")
+                st.session_state["pedido_oficio"] = texto_archivo_oficio
+                st.session_state["respuesta_oficio"] = datos_detectados_oficio.get("resumen", "")
+
+                st.session_state["archivo_oficio_procesado"] = nombre_archivo_actual
+                st.session_state["datos_oficio_cargados"] = True
+
+                st.rerun()
+
+            else:
+                st.warning("No se pudieron estructurar los datos detectados.")
+
+        else:
+            st.info("Datos ya detectados para este archivo.")
+
+    else:
+        st.warning("No se pudo extraer texto del archivo o está vacío.")
+
+    # ---------------------------
+    # Campos del formulario
+    # ---------------------------
+    col1, col2 = st.columns(2)
+
+    with col1:
+        organismo = st.text_input("Organismo / Juzgado", key="organismo_oficio")
+        dependencia = st.text_input("Dependencia/Secretaría (opcional)", key="dependencia_oficio")
+
+    with col2:
+        expediente = st.text_input("Carátula / Expediente", key="expediente_oficio")
+        fecha = st.text_input("Fecha (dd/mm/aaaa)", key="fecha_oficio")
+
+    objeto = st.text_input("Objeto del oficio (1 línea)", key="objeto_oficio")
+
+    pedido = st.text_area(
+        "Pedido del oficio (copiar/pegar)",
+        height=110,
+        key="pedido_oficio"
+    )
+
+    respuesta = st.text_area(
+        "Información a informar (ordenada y completa)",
+        height=140,
+        key="respuesta_oficio"
+    )
 
     col3, col4, col5 = st.columns(3)
     with col3:
@@ -1815,11 +1949,11 @@ elif menu == "Contestación de Oficio":
         requiere_consent = st.checkbox("Aclarar facultades/consentimiento (si aplica)", value=False)
 
     usar_ia_oficio = st.checkbox("Usar IA para redactar la contestación", value=True)
-    
+
     if st.button("Generar Contestación"):
 
         limpiar_resultado("ultimo_oficio")
-        
+
         if usar_ia_oficio:
             prompt_sistema = (
                 "Sos asistente jurídico del Estudio Peire. "
