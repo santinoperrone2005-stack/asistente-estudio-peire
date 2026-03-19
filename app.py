@@ -3256,24 +3256,6 @@ elif menu == "Historial":
             st.success("Historial borrado.")
             st.rerun()
 
-st.divider()
-
-if st.button("🧹 Limpiar filtros"):
-
-    claves = list(st.session_state.keys())
-
-    for k in claves:
-        if (
-            "editor" in k
-            or "ultimo" in k
-            or "sync" in k
-            or "analisis" in k
-            or "archivo" in k
-        ):
-            del st.session_state[k]
-
-    st.rerun()
-
 # =========================================================
 # 8) BIBLIOTECA OFICIAL DE PROMPTS
 # =========================================================
