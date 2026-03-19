@@ -2094,6 +2094,30 @@ Devolvé solo el texto final del documento.
 elif menu == "Mailing (Modo Agente)":
     st.header("📧 Mailing (Modo Agente)")
 
+    # ---------------------------
+    # Estado inicial
+    # ---------------------------
+    if "archivo_mail_procesado" not in st.session_state:
+        st.session_state["archivo_mail_procesado"] = ""
+
+    if "datos_mail_cargados" not in st.session_state:
+        st.session_state["datos_mail_cargados"] = False
+
+    if "cliente_mail" not in st.session_state:
+        st.session_state["cliente_mail"] = ""
+
+    if "caso_mail" not in st.session_state:
+        st.session_state["caso_mail"] = ""
+
+    if "estado_mail" not in st.session_state:
+        st.session_state["estado_mail"] = ""
+
+    if "proximo_paso_mail" not in st.session_state:
+        st.session_state["proximo_paso_mail"] = ""
+
+    if "accion_cliente_mail" not in st.session_state:
+        st.session_state["accion_cliente_mail"] = ""
+
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
@@ -2103,38 +2127,188 @@ elif menu == "Mailing (Modo Agente)":
             limpiar_resultado("editor_mail")
             limpiar_resultado("sync_editor_mail")
             limpiar_resultado("instruccion_edicion_mail")
+
+            st.session_state["archivo_mail_procesado"] = ""
+            st.session_state["datos_mail_cargados"] = False
+            st.session_state["cliente_mail"] = ""
+            st.session_state["caso_mail"] = ""
+            st.session_state["estado_mail"] = ""
+            st.session_state["proximo_paso_mail"] = ""
+            st.session_state["accion_cliente_mail"] = ""
+
             st.rerun()
-    
+
+    # ---------------------------
+    # Configuración del mailing
+    # ---------------------------
     col1, col2, col3 = st.columns(3)
     with col1:
-        tipo_mail = st.selectbox("Tipo de mensaje", ["Actualización de caso", "Pedido de documentación", "Seguimiento", "Cierre / próximos pasos", "Recordatorio"])
+        tipo_mail = st.selectbox(
+            "Tipo de mensaje",
+            [
+                "Actualización de caso",
+                "Pedido de documentación",
+                "Seguimiento",
+                "Cierre / próximos pasos",
+                "Recordatorio",
+                "Envío de presupuesto",
+                "Confirmación de reunión",
+                "Respuesta institucional"
+            ]
+        )
     with col2:
-        tono = st.selectbox("Tono", ["Cálido y profesional", "Muy formal", "Breve y directo"])
+        tono = st.selectbox(
+            "Tono",
+            ["Cálido y profesional", "Muy formal", "Breve y directo"]
+        )
     with col3:
-        canal = st.selectbox("Canal", ["Email", "WhatsApp (texto corto)"])
+        canal = st.selectbox(
+            "Canal",
+            ["Email", "WhatsApp (texto corto)"]
+        )
 
-    cliente = st.text_input("Nombre del cliente", placeholder="Ej: María González")
-    caso = st.text_input("Caso/Asunto general (ej: alquiler, laboral, daños)", placeholder="Ej: Reclamo laboral")
-    estado = st.text_area("Estado actual / contexto (2–6 líneas)", height=100, placeholder="Describí el estado actual del caso.")
-    proximo_paso = st.text_area("Próximo paso (qué tiene que pasar ahora)", height=80, placeholder="Ej: aguardar respuesta / presentar documentación.")
-    accion_cliente = st.text_input("Acción requerida al cliente (si aplica)", value="", placeholder="Ej: enviar DNI y comprobantes")
     col4, col5 = st.columns(2)
     with col4:
-        incluir_disclaimer = st.checkbox("Incluir disclaimer (confidencialidad)", value=True)
+        extension = st.selectbox(
+            "Extensión",
+            ["Breve", "Media", "Más desarrollada"]
+        )
     with col5:
+        incluir_asunto = st.checkbox("Generar asunto sugerido", value=True)
+
+    cliente = st.text_input(
+        "Nombre del cliente",
+        placeholder="Ej: María González",
+        key="cliente_mail"
+    )
+
+    caso = st.text_input(
+        "Caso / asunto general",
+        placeholder="Ej: Reclamo laboral",
+        key="caso_mail"
+    )
+
+    objetivo = st.text_input(
+        "Objetivo principal del mensaje",
+        placeholder="Ej: informar estado, pedir documentación, confirmar próximos pasos"
+    )
+
+    # ---------------------------
+    # Archivo opcional como contexto
+    # ---------------------------
+    st.markdown("### Contexto opcional")
+    archivo_mail = st.file_uploader(
+        "Subir documento como contexto (opcional)",
+        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+        key="archivo_mail_contexto"
+    )
+
+    texto_archivo_mail = ""
+
+    if archivo_mail is not None:
+        nombre_archivo_actual = archivo_mail.name
+
+        with st.spinner("Procesando archivo..."):
+            texto_archivo_mail = extraer_texto_archivo(archivo_mail)
+
+        if texto_archivo_mail.startswith("ERROR_"):
+            st.error(texto_archivo_mail)
+            texto_archivo_mail = ""
+
+        elif texto_archivo_mail.strip():
+            st.success(f"Archivo cargado: {archivo_mail.name}")
+
+            st.text_area(
+                "Texto detectado del archivo",
+                value=texto_archivo_mail,
+                height=180,
+                key="texto_detectado_mail"
+            )
+
+            if (
+                st.session_state["archivo_mail_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_mail_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados_mail = extraer_datos_clave_con_ia(texto_archivo_mail)
+
+                if isinstance(datos_detectados_mail, dict) and "error" in datos_detectados_mail:
+                    st.error(datos_detectados_mail["error"])
+
+                elif isinstance(datos_detectados_mail, dict):
+                    st.subheader("Datos detectados automáticamente")
+
+                    st.markdown(f"""
+**Tipo sugerido:** {datos_detectados_mail.get("tipo_documento", "No detectado")}  
+**Remitente:** {datos_detectados_mail.get("remitente", "No detectado")}  
+**Destinatario:** {datos_detectados_mail.get("destinatario", "No detectado")}  
+**Fecha:** {datos_detectados_mail.get("fecha", "No detectado")}  
+**Objeto:** {datos_detectados_mail.get("objeto", "No detectado")}  
+**Resumen:** {datos_detectados_mail.get("resumen", "No detectado")}
+""")
+
+                    if not st.session_state["cliente_mail"]:
+                        st.session_state["cliente_mail"] = datos_detectados_mail.get("destinatario", "")
+
+                    if not st.session_state["caso_mail"]:
+                        st.session_state["caso_mail"] = datos_detectados_mail.get("objeto", "")
+
+                    if not st.session_state["estado_mail"]:
+                        st.session_state["estado_mail"] = datos_detectados_mail.get("resumen", "")
+
+                    st.session_state["archivo_mail_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_mail_cargados"] = True
+
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
+
+            else:
+                st.info("Datos ya detectados para este archivo.")
+
+        else:
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
+
+    estado = st.text_area(
+        "Estado actual / contexto",
+        height=100,
+        placeholder="Describí el estado actual del caso o del asunto.",
+        key="estado_mail"
+    )
+
+    proximo_paso = st.text_area(
+        "Próximo paso",
+        height=80,
+        placeholder="Ej: aguardar respuesta, presentar documentación, coordinar reunión.",
+        key="proximo_paso_mail"
+    )
+
+    accion_cliente = st.text_input(
+        "Acción requerida al cliente (si aplica)",
+        placeholder="Ej: enviar DNI y comprobantes",
+        key="accion_cliente_mail"
+    )
+
+    col6, col7 = st.columns(2)
+    with col6:
+        incluir_disclaimer = st.checkbox("Incluir disclaimer (confidencialidad)", value=True)
+    with col7:
         incluir_agenda = st.checkbox("Sugerir coordinación de llamada/reunión", value=False)
 
     usar_ia_mail = st.checkbox("Usar IA para redactar el mensaje", value=True)
-    
+
     if st.button("Generar Mailing"):
 
         limpiar_resultado("ultimo_mail")
-        
+
         if usar_ia_mail:
             prompt_sistema = (
                 "Sos asistente del Estudio Peire. "
-                "Redactás emails y mensajes a clientes en español claro, profesional y útil. "
+                "Redactás emails y mensajes a clientes en español claro, profesional, útil y ordenado. "
                 "No inventes hechos. "
+                "Si el canal es email, podés incluir asunto si el usuario lo pidió. "
+                "Si el canal es WhatsApp, el texto debe ser breve, natural y directo. "
                 "Devolvé solo el texto final."
             )
 
@@ -2144,8 +2318,11 @@ Redactá una comunicación para cliente.
 Tipo de mensaje: {tipo_mail}
 Canal: {canal}
 Tono: {tono}
+Extensión: {extension}
+Generar asunto sugerido: {incluir_asunto}
 Cliente: {cliente}
 Caso: {caso}
+Objetivo principal: {objetivo}
 
 Estado actual:
 {estado}
@@ -2155,6 +2332,9 @@ Próximo paso:
 
 Acción requerida al cliente:
 {accion_cliente}
+
+Texto del documento cargado como contexto:
+{texto_archivo_mail if texto_archivo_mail.strip() else "No se cargó documento."}
 
 Sugerir coordinación de llamada/reunión: {incluir_agenda}
 Incluir disclaimer de confidencialidad: {incluir_disclaimer}
@@ -2186,22 +2366,36 @@ Devolvé solo el texto final del mensaje.
                 asunto = f"Seguimiento – {caso_txt}"
             elif tipo_mail == "Cierre / próximos pasos":
                 asunto = f"Próximos pasos – {caso_txt}"
+            elif tipo_mail == "Envío de presupuesto":
+                asunto = f"Presupuesto – {caso_txt}"
+            elif tipo_mail == "Confirmación de reunión":
+                asunto = f"Confirmación de reunión – {caso_txt}"
+            elif tipo_mail == "Respuesta institucional":
+                asunto = f"Comunicación – {caso_txt}"
             else:
                 asunto = f"Recordatorio – {caso_txt}"
 
             if canal == "WhatsApp (texto corto)":
                 t = f"{nombre_cli}, te escribo desde {estudio}. "
+
                 if tipo_mail == "Pedido de documentación":
-                    t += "Necesitamos la siguiente documentación/confirmación para avanzar. "
-                t += safe(estado, "Actualización del caso. ").strip() + " "
+                    t += "Necesitamos cierta documentación para poder avanzar. "
+
+                if estado.strip():
+                    t += estado.strip() + " "
+
                 if accion_cliente.strip():
-                    t += f"¿Podés enviarnos: {accion_cliente.strip()}? "
+                    t += f"¿Podés enviarnos {accion_cliente.strip()}? "
+
                 if proximo_paso.strip():
-                    t += f"Próximo paso: {proximo_paso.strip()} "
+                    t += f"Próximo paso: {proximo_paso.strip()}. "
+
                 if incluir_agenda:
                     t += "Si te parece, coordinamos una llamada breve. "
+
                 if incluir_disclaimer:
                     t += "Mensaje confidencial."
+
             else:
                 if tono == "Cálido y profesional":
                     saludo = f"Hola {nombre_cli},"
@@ -2213,7 +2407,15 @@ Devolvé solo el texto final del mensaje.
                     saludo = f"{nombre_cli},"
                     cierre = "Saludos"
 
-                t = f"Asunto: {asunto}\n\n{saludo}\n\n"
+                t = ""
+                if incluir_asunto:
+                    t += f"Asunto: {asunto}\n\n"
+
+                t += f"{saludo}\n\n"
+
+                if objetivo.strip():
+                    t += f"{objetivo.strip()}.\n\n"
+
                 t += safe(estado, "[Estado actual del caso]") + "\n\n"
 
                 if tipo_mail == "Pedido de documentación" and accion_cliente.strip():
@@ -2225,7 +2427,7 @@ Devolvé solo el texto final del mensaje.
                     t += f"Próximo paso: {proximo_paso.strip()}.\n\n"
 
                 if incluir_agenda:
-                    t += "Si estás de acuerdo, coordinamos una llamada/reunión breve para confirmar los próximos pasos.\n\n"
+                    t += "Si estás de acuerdo, coordinamos una llamada o reunión breve para confirmar los próximos pasos.\n\n"
 
                 if incluir_disclaimer:
                     t += "Este mensaje contiene información confidencial. Si no sos el destinatario, por favor informanos y eliminá el contenido.\n\n"
@@ -2303,6 +2505,36 @@ Devolvé solo el texto final del mensaje.
 elif menu == "Presupuesto":
     st.header("💼 Presupuesto de Honorarios")
 
+    # ---------------------------
+    # Estado inicial
+    # ---------------------------
+    if "cliente_presupuesto" not in st.session_state:
+        st.session_state["cliente_presupuesto"] = ""
+
+    if "servicio_presupuesto" not in st.session_state:
+        st.session_state["servicio_presupuesto"] = ""
+
+    if "fecha_presupuesto" not in st.session_state:
+        st.session_state["fecha_presupuesto"] = date.today().strftime("%d/%m/%Y")
+
+    if "honorarios_presupuesto" not in st.session_state:
+        st.session_state["honorarios_presupuesto"] = ""
+
+    if "alcance_presupuesto" not in st.session_state:
+        st.session_state["alcance_presupuesto"] = ""
+
+    if "no_incluye_presupuesto" not in st.session_state:
+        st.session_state["no_incluye_presupuesto"] = ""
+
+    if "plazos_presupuesto" not in st.session_state:
+        st.session_state["plazos_presupuesto"] = ""
+
+    if "forma_pago_presupuesto" not in st.session_state:
+        st.session_state["forma_pago_presupuesto"] = ""
+
+    if "observaciones_presupuesto" not in st.session_state:
+        st.session_state["observaciones_presupuesto"] = ""
+
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.button("← Volver al panel principal", on_click=volver_al_dashboard)
@@ -2312,48 +2544,154 @@ elif menu == "Presupuesto":
             limpiar_resultado("editor_presupuesto")
             limpiar_resultado("sync_editor_presupuesto")
             limpiar_resultado("instruccion_edicion_presupuesto")
+
+            st.session_state["cliente_presupuesto"] = ""
+            st.session_state["servicio_presupuesto"] = ""
+            st.session_state["fecha_presupuesto"] = date.today().strftime("%d/%m/%Y")
+            st.session_state["honorarios_presupuesto"] = ""
+            st.session_state["alcance_presupuesto"] = ""
+            st.session_state["no_incluye_presupuesto"] = ""
+            st.session_state["plazos_presupuesto"] = ""
+            st.session_state["forma_pago_presupuesto"] = ""
+            st.session_state["observaciones_presupuesto"] = ""
+
             st.rerun()
-    
+
+    # ---------------------------
+    # Datos principales
+    # ---------------------------
     col1, col2 = st.columns(2)
     with col1:
-        cliente = st.text_input("Cliente")
-        servicio = st.text_input("Servicio")
+        cliente = st.text_input(
+            "Cliente",
+            placeholder="Ej: María González",
+            key="cliente_presupuesto"
+        )
+
+        servicio_tipo = st.selectbox(
+            "Tipo de servicio",
+            [
+                "Consulta",
+                "Carta documento",
+                "Respuesta a carta documento",
+                "Contestación de oficio",
+                "Mediación",
+                "Demanda judicial",
+                "Gestión extrajudicial",
+                "Seguimiento mensual",
+                "Otro"
+            ]
+        )
+
+        servicio = st.text_input(
+            "Servicio / descripción concreta",
+            placeholder="Ej: Reclamo laboral / Sucesión / Contestación de oficio",
+            key="servicio_presupuesto"
+        )
+
     with col2:
-        fecha = st.text_input("Fecha (dd/mm/aaaa)", value=date.today().strftime("%d/%m/%Y"))
-        validez = st.selectbox("Validez del presupuesto", ["7 días", "10 días", "15 días", "30 días"])
+        fecha = st.text_input(
+            "Fecha (dd/mm/aaaa)",
+            key="fecha_presupuesto"
+        )
 
-    modalidad = st.selectbox("Modalidad", ["Monto fijo", "Por etapas", "Success fee", "Mixto (fijo + success fee)"])
-    honorarios = st.text_input("Honorarios / Monto / Porcentaje (según modalidad)")
+        validez = st.selectbox(
+            "Validez del presupuesto",
+            ["7 días", "10 días", "15 días", "30 días"]
+        )
 
-    cliente = st.text_input("Cliente", placeholder="Ej: María González")
-    servicio = st.text_input("Servicio", placeholder="Ej: Sucesión / Carta documento / Reclamo")
-    honorarios = st.text_input("Honorarios / Monto / Porcentaje (según modalidad)", placeholder="Ej: $250.000 o 10%")
-    alcance = st.text_area("Alcance (qué incluye)", height=110, placeholder="Describí qué incluye el servicio.")
-    no_incluye = st.text_area("No incluye (limitaciones)", height=90, placeholder="Describí qué no está incluido.")
-    plazos = st.text_area("Plazos estimados", height=80, placeholder="Ej: entre 30 y 60 días.")
-    forma_pago = st.text_area("Forma de pago", height=80, placeholder="Ej: 50% al inicio y 50% contra entrega.")
-    observaciones = st.text_area("Observaciones (opcional)", height=70, placeholder="Aclaraciones adicionales.")
+        moneda = st.selectbox(
+            "Moneda",
+            ["ARS", "USD"]
+        )
+
     col3, col4, col5 = st.columns(3)
     with col3:
-        incluir_impuestos = st.checkbox("Aclarar impuestos/retenciones (si aplica)", value=True)
+        modalidad = st.selectbox(
+            "Modalidad",
+            ["Monto fijo", "Por etapas", "Success fee", "Mixto (fijo + success fee)"]
+        )
     with col4:
-        incluir_gastos = st.checkbox("Aclarar gastos (tasa, diligencias, etc.)", value=True)
+        pago = st.selectbox(
+            "Forma general de cobro",
+            ["Pago único", "Anticipo + saldo", "Cuotas", "A convenir"]
+        )
     with col5:
-        incluir_condiciones = st.checkbox("Condiciones generales (cambios de alcance)", value=True)
+        incluir_mail_envio = st.checkbox("Generar texto breve para enviar al cliente", value=False)
 
-    observaciones = st.text_area("Observaciones (opcional)", height=70)
+    honorarios = st.text_input(
+        "Honorarios / monto / porcentaje",
+        placeholder="Ej: $250.000 / USD 500 / 10%",
+        key="honorarios_presupuesto"
+    )
+
+    col6, col7 = st.columns(2)
+    with col6:
+        anticipo = st.text_input(
+            "Anticipo (si aplica)",
+            placeholder="Ej: 50% al inicio"
+        )
+    with col7:
+        cuotas = st.text_input(
+            "Cuotas / saldo (si aplica)",
+            placeholder="Ej: 2 cuotas mensuales iguales y consecutivas"
+        )
+
+    alcance = st.text_area(
+        "Alcance (qué incluye)",
+        height=110,
+        placeholder="Describí qué incluye el servicio.",
+        key="alcance_presupuesto"
+    )
+
+    no_incluye = st.text_area(
+        "No incluye / limitaciones",
+        height=90,
+        placeholder="Describí qué no está incluido.",
+        key="no_incluye_presupuesto"
+    )
+
+    plazos = st.text_area(
+        "Plazos estimados",
+        height=80,
+        placeholder="Ej: entre 30 y 60 días / sujeto a tiempos del organismo o juzgado.",
+        key="plazos_presupuesto"
+    )
+
+    forma_pago = st.text_area(
+        "Forma de pago",
+        height=80,
+        placeholder="Ej: 50% al inicio y 50% contra entrega / transferencia bancaria.",
+        key="forma_pago_presupuesto"
+    )
+
+    observaciones = st.text_area(
+        "Observaciones (opcional)",
+        height=70,
+        placeholder="Aclaraciones adicionales.",
+        key="observaciones_presupuesto"
+    )
+
+    col8, col9, col10 = st.columns(3)
+    with col8:
+        incluir_impuestos = st.checkbox("Aclarar impuestos/retenciones", value=True)
+    with col9:
+        incluir_gastos = st.checkbox("Aclarar gastos (tasa, diligencias, etc.)", value=True)
+    with col10:
+        incluir_condiciones = st.checkbox("Condiciones generales", value=True)
 
     usar_ia_presupuesto = st.checkbox("Usar IA para redactar el presupuesto", value=True)
-    
+
     if st.button("Generar Presupuesto"):
 
         limpiar_resultado("ultimo_presupuesto")
-        
+
         if usar_ia_presupuesto:
             prompt_sistema = (
                 "Sos asistente del Estudio Peire. "
-                "Redactás presupuestos jurídicos profesionales en español claro y formal. "
+                "Redactás presupuestos jurídicos profesionales en español claro, formal y comercialmente correcto. "
                 "No inventes hechos ni condiciones no dadas. "
+                "Ordenás el texto como documento profesional listo para revisar y enviar. "
                 "Devolvé solo el texto final."
             )
 
@@ -2361,11 +2699,16 @@ elif menu == "Presupuesto":
 Redactá un presupuesto de honorarios jurídicos.
 
 Cliente: {cliente}
+Tipo de servicio: {servicio_tipo}
 Servicio: {servicio}
 Fecha: {fecha}
 Validez: {validez}
+Moneda: {moneda}
 Modalidad: {modalidad}
+Forma general de cobro: {pago}
 Honorarios: {honorarios}
+Anticipo: {anticipo}
+Cuotas / saldo: {cuotas}
 
 Alcance:
 {alcance}
@@ -2408,31 +2751,66 @@ Devolvé solo el texto final del presupuesto.
         else:
             t = "PRESUPUESTO DE HONORARIOS\n\n"
             t += f"Estudio: {estudio}\n"
-            t += f"Fecha: {safe(fecha,'[Fecha]')}\n"
-            t += f"Cliente: {safe(cliente,'[Cliente]')}\n"
-            t += f"Servicio: {safe(servicio,'[Servicio]')}\n\n"
+            t += f"Fecha: {safe(fecha, '[Fecha]')}\n"
+            t += f"Cliente: {safe(cliente, '[Cliente]')}\n"
+            t += f"Tipo de servicio: {safe(servicio_tipo, '[Tipo de servicio]')}\n"
+            t += f"Servicio: {safe(servicio, '[Servicio]')}\n\n"
 
+            t += "CONDICIONES ECONÓMICAS\n"
+            t += f"Moneda: {moneda}\n"
             t += f"Modalidad: {modalidad}\n"
-            t += f"Honorarios: {safe(honorarios,'[Completar]')}\n\n"
+            t += f"Forma general de cobro: {pago}\n"
+            t += f"Honorarios: {safe(honorarios, '[Completar honorarios]')}\n"
 
-            t += "Alcance (incluye):\n" + safe(alcance, "[Detallar alcance]") + "\n\n"
-            t += "No incluye:\n" + safe(no_incluye, "[Detallar exclusiones]") + "\n\n"
-            t += "Plazos estimados:\n" + safe(plazos, "[Detallar plazos]") + "\n\n"
-            t += "Forma de pago:\n" + safe(forma_pago, "[Detallar forma de pago]") + "\n\n"
+            if anticipo.strip():
+                t += f"Anticipo: {anticipo.strip()}\n"
+            if cuotas.strip():
+                t += f"Cuotas / saldo: {cuotas.strip()}\n"
+
+            t += "\nALCANCE DEL SERVICIO\n"
+            t += safe(alcance, "[Detallar alcance]") + "\n\n"
+
+            t += "NO INCLUYE\n"
+            t += safe(no_incluye, "[Detallar exclusiones]") + "\n\n"
+
+            t += "PLAZOS ESTIMADOS\n"
+            t += safe(plazos, "[Detallar plazos]") + "\n\n"
+
+            t += "FORMA DE PAGO\n"
+            t += safe(forma_pago, "[Detallar forma de pago]") + "\n\n"
 
             if incluir_gastos:
-                t += "Gastos:\nLos gastos y erogaciones no se encuentran incluidos salvo indicación expresa.\n\n"
+                t += "GASTOS Y EROGACIONES\n"
+                t += "Los gastos, tasas, diligencias, certificaciones, aportes, traslados y demás erogaciones no se encuentran incluidos salvo indicación expresa en contrario.\n\n"
+
             if incluir_impuestos:
-                t += "Impuestos/retenciones:\nLos importes podrán estar sujetos a impuestos y/o retenciones según normativa aplicable.\n\n"
+                t += "IMPUESTOS / RETENCIONES\n"
+                t += "Los importes consignados podrán estar sujetos a impuestos, percepciones y/o retenciones conforme la normativa aplicable.\n\n"
+
             if incluir_condiciones:
-                t += "Condiciones generales:\nEl presente presupuesto se basa en la información provista. Cualquier ampliación del alcance o complejidad no prevista podrá implicar ajustes.\n\n"
+                t += "CONDICIONES GENERALES\n"
+                t += "El presente presupuesto se formula sobre la base de la información actualmente disponible. Cualquier modificación del alcance, complejidad, volumen de trabajo o circunstancias no previstas podrá requerir una adecuación del mismo.\n\n"
 
-            t += f"Validez: {validez}\n"
+            t += f"VALIDEZ DEL PRESUPUESTO\n{validez}\n"
+
             if observaciones.strip():
-                t += "\nObservaciones:\n" + observaciones.strip() + "\n"
+                t += "\nOBSERVACIONES\n" + observaciones.strip() + "\n"
 
+            t += "\n"
             t += bloque_firma(firmante, matricula, estudio, contacto)
 
+        if incluir_mail_envio:
+            t += f"""
+
+----------------------------------------
+TEXTO BREVE SUGERIDO PARA ENVÍO AL CLIENTE
+
+Hola {cliente or '[Cliente]'},
+Te compartimos el presupuesto correspondiente a {servicio or servicio_tipo}.
+Quedamos a disposición por cualquier duda o para avanzar.
+Saludos,
+{estudio}
+"""
         st.session_state["ultimo_presupuesto"] = t
         st.session_state["sync_editor_presupuesto"] = True
 
