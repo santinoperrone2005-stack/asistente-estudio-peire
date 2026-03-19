@@ -1783,9 +1783,6 @@ Devolvé solo el texto final del documento, sin explicaciones adicionales.
 elif menu == "Contestación de Oficio":
     st.header("📑 Contestación de Oficio")
 
-    # ---------------------------
-    # Estado inicial
-    # ---------------------------
     if "archivo_oficio_procesado" not in st.session_state:
         st.session_state["archivo_oficio_procesado"] = ""
 
@@ -1836,52 +1833,50 @@ elif menu == "Contestación de Oficio":
 
             st.rerun()
 
-# Archivo primero
-# ---------------------------
-st.markdown("### Subir archivo")
+    st.markdown("### Subir archivo")
 
-archivo_oficio_subido = st.file_uploader(
-    "Subir oficio o documento relacionado (opcional)",
-    type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
-    key="archivo_oficio_uploader"
-)
+    archivo_oficio_subido = st.file_uploader(
+        "Subir oficio o documento relacionado (opcional)",
+        type=["pdf", "docx", "txt", "jpg", "jpeg", "png"],
+        key="archivo_oficio_uploader"
+    )
 
-texto_archivo_oficio = ""
+    texto_archivo_oficio = ""
 
-if archivo_oficio_subido is not None:
-    nombre_archivo_actual = archivo_oficio_subido.name
+    if archivo_oficio_subido is not None:
+        nombre_archivo_actual = archivo_oficio_subido.name
 
-    with st.spinner("Procesando archivo..."):
-        texto_archivo_oficio = extraer_texto_archivo(archivo_oficio_subido)
+        with st.spinner("Procesando archivo..."):
+            texto_archivo_oficio = extraer_texto_archivo(archivo_oficio_subido)
 
-    if texto_archivo_oficio.startswith("ERROR_"):
-        st.error(texto_archivo_oficio)
-        texto_archivo_oficio = ""
+        if texto_archivo_oficio.startswith("ERROR_"):
+            st.error(texto_archivo_oficio)
+            texto_archivo_oficio = ""
 
-    elif texto_archivo_oficio.strip():
-        st.success(f"Archivo cargado: {archivo_oficio_subido.name}")
+        elif texto_archivo_oficio.strip():
+            st.success(f"Archivo cargado: {archivo_oficio_subido.name}")
 
-        st.text_area(
-            "Texto detectado del archivo",
-            value=texto_archivo_oficio,
-            height=220,
-            key="texto_detectado_oficio"
-        )
+            st.text_area(
+                "Texto detectado del archivo",
+                value=texto_archivo_oficio,
+                height=220,
+                key="texto_detectado_oficio"
+            )
 
-        if (
-            st.session_state["archivo_oficio_procesado"] != nombre_archivo_actual
-            or not st.session_state["datos_oficio_cargados"]
-        ):
-            with st.spinner("Extrayendo datos clave..."):
-                datos_detectados_oficio = extraer_datos_clave_con_ia(texto_archivo_oficio)
+            if (
+                st.session_state["archivo_oficio_procesado"] != nombre_archivo_actual
+                or not st.session_state["datos_oficio_cargados"]
+            ):
+                with st.spinner("Extrayendo datos clave..."):
+                    datos_detectados_oficio = extraer_datos_clave_con_ia(texto_archivo_oficio)
 
-            if isinstance(datos_detectados_oficio, dict) and "error" in datos_detectados_oficio:
-                st.error(datos_detectados_oficio["error"])
+                if isinstance(datos_detectados_oficio, dict) and "error" in datos_detectados_oficio:
+                    st.error(datos_detectados_oficio["error"])
 
-            elif isinstance(datos_detectados_oficio, dict):
-                st.subheader("Datos detectados automáticamente")
+                elif isinstance(datos_detectados_oficio, dict):
+                    st.subheader("Datos detectados automáticamente")
 
-                st.markdown(f"""
+                    st.markdown(f"""
 **Tipo sugerido:** {datos_detectados_oficio.get("tipo_documento", "No detectado")}  
 **Remitente:** {datos_detectados_oficio.get("remitente", "No detectado")}  
 **Destinatario:** {datos_detectados_oficio.get("destinatario", "No detectado")}  
@@ -1891,31 +1886,30 @@ if archivo_oficio_subido is not None:
 **Resumen:** {datos_detectados_oficio.get("resumen", "No detectado")}
 """)
 
-                st.session_state["organismo_oficio"] = datos_detectados_oficio.get("destinatario", "")
-                st.session_state["dependencia_oficio"] = ""
-                st.session_state["expediente_oficio"] = ""
-                st.session_state["fecha_oficio"] = datos_detectados_oficio.get("fecha", date.today().strftime("%d/%m/%Y"))
-                st.session_state["objeto_oficio"] = datos_detectados_oficio.get("objeto", "")
-                st.session_state["pedido_oficio"] = texto_archivo_oficio
-                st.session_state["respuesta_oficio"] = datos_detectados_oficio.get("resumen", "")
+                    st.session_state["organismo_oficio"] = datos_detectados_oficio.get("destinatario", "")
+                    st.session_state["dependencia_oficio"] = ""
+                    st.session_state["expediente_oficio"] = ""
+                    st.session_state["fecha_oficio"] = datos_detectados_oficio.get(
+                        "fecha", date.today().strftime("%d/%m/%Y")
+                    )
+                    st.session_state["objeto_oficio"] = datos_detectados_oficio.get("objeto", "")
+                    st.session_state["pedido_oficio"] = texto_archivo_oficio
+                    st.session_state["respuesta_oficio"] = datos_detectados_oficio.get("resumen", "")
 
-                st.session_state["archivo_oficio_procesado"] = nombre_archivo_actual
-                st.session_state["datos_oficio_cargados"] = True
+                    st.session_state["archivo_oficio_procesado"] = nombre_archivo_actual
+                    st.session_state["datos_oficio_cargados"] = True
 
-                st.rerun()
+                    st.rerun()
+
+                else:
+                    st.warning("No se pudieron estructurar los datos detectados.")
 
             else:
-                st.warning("No se pudieron estructurar los datos detectados.")
+                st.info("Datos ya detectados para este archivo.")
 
         else:
-            st.info("Datos ya detectados para este archivo.")
+            st.warning("No se pudo extraer texto del archivo o está vacío.")
 
-    else:
-        st.warning("No se pudo extraer texto del archivo o está vacío.")
-
-    # ---------------------------
-    # Campos del formulario
-    # ---------------------------
     col1, col2 = st.columns(2)
 
     with col1:
@@ -1951,7 +1945,6 @@ if archivo_oficio_subido is not None:
     usar_ia_oficio = st.checkbox("Usar IA para redactar la contestación", value=True)
 
     if st.button("Generar Contestación"):
-
         limpiar_resultado("ultimo_oficio")
 
         if usar_ia_oficio:
@@ -2043,7 +2036,6 @@ Devolvé solo el texto final del documento.
         )
 
     if "ultimo_oficio" in st.session_state:
-
         if "editor_oficio" not in st.session_state:
             st.session_state["editor_oficio"] = st.session_state["ultimo_oficio"]
 
